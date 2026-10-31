@@ -1,55 +1,60 @@
-import 'package:flutter/material.dart';
 
-import '../../../../core/constant/app_colors.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../controller/auth_controller.dart';
+
 import '../widgets/login_form.dart';
+import 'auth_role_router.dart';
 import 'login_background.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: LoginScreen(),
-    );
-  }
-}
-
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    ref.listen<AsyncValue<String?>>(
+      authControllerProvider,
+          (previous, next) {
+        next.when(
+          loading: () {},
+          data: (role) {
+            if (role == null || !context.mounted) return;
+
+            AuthRoleRouter.navigateByRole(
+              context: context,
+              role: role,
+            );
+          },
+          error: (error, stackTrace) {
+            if (!context.mounted) return;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  error.toString().replaceFirst('Exception: ', ''),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
 
     return LoginBackground(
       child: LoginForm(
-        onLoginPressed: () {
-          // Login logic
+        onLoginPressed: (email, password) async {
+          await ref.read(authControllerProvider.notifier).login(
+            email: email,
+            password: password,
+          );
         },
       ),
     );
-
-
   }
 }

@@ -1,24 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:result_management_system/features/authentication/presentation/screens/signup_screen.dart';
 import 'package:result_management_system/features/authentication/splash/splash_screen.dart';
-import 'package:result_management_system/features/result/screen/result_screen.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/widgets/curved_background.dart';
-import 'features/action_manage/screen/action_manage.dart';
+
 import 'features/admin/screens/admin_screen.dart';
+import 'features/authentication/presentation/screens/auth_gate_screen.dart';
 import 'features/authentication/presentation/screens/login_screen.dart';
-import 'features/teacher/screens/teacher_screen.dart';
+
+
 
 void main() async {
     WidgetsFlutterBinding.ensureInitialized();
 
     await Supabase.initialize(
-      url: 'YOUR_SUPABASE_URL',
-      anonKey: 'YOUR_SUPABASE_ANON_KEY',
+      url: 'https://mkjmvjdhjqzfuvrdciuu.supabase.co',
+      publishableKey: 'sb_publishable_MiZaw9UKS72MtW90pYykqg_DeHxAE0Y',
     );
-  runApp(const MyApp());
+    runApp(
+      const ProviderScope(
+        child: MyApp(),
+      ),
+    );
 }
+
 
 class MyApp extends StatelessWidget {
 
@@ -33,8 +41,8 @@ class MyApp extends StatelessWidget {
 
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-
-      home: const LoginScreen(),
+        home: const AuthGateScreen()
+      //home: const LoginScreen(),
      // home: const SignUpScreen(),
       //home: const AdminScreen(),
       //home: TeacherListScreen(),

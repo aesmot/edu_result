@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constant/app_colors.dart';
+import '../../features/authentication/presentation/screens/login_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserAppBar extends StatelessWidget implements PreferredSizeWidget {
   const UserAppBar({super.key});
@@ -74,13 +76,52 @@ class UserAppBar extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
 
-      actions: const [
-        Icon(
-          Icons.notifications_none_rounded,
-          color: Colors.white, // Notification icon color
-          size: 25,
+      actions: [
+        // Notification Button (IconButton a convert kora holo)
+        IconButton(
+          onPressed: () {
+            // Notification action
+          },
+          icon: const Icon(
+            Icons.notifications_none_rounded,
+            color: Colors.white,
+            size: 25,
+          ),
         ),
-        SizedBox(width: 20),
+
+        // --- [ Notun Logout Button add kora holo ] ---
+        IconButton(
+          onPressed: () async {
+            try {
+              await Supabase.instance.client.auth.signOut();
+
+              if (!context.mounted) return;
+
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (_) => const LoginScreen(),
+                ),
+                    (route) => false,
+              );
+            } catch (e) {
+              if (!context.mounted) return;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Logout failed: $e'),
+                ),
+              );
+            }
+          },
+          icon: const Icon(
+            Icons.logout_rounded,
+            color: Colors.white,
+            size: 25,
+          ),
+          tooltip: 'Logout',
+        ),
+
+        const SizedBox(width: 10),
       ],
 
       bottom: const PreferredSize(

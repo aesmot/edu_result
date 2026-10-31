@@ -60,6 +60,17 @@ class AppColors {
   //static const Color border = Color(0xFFE2E8F0);        // সাধারণ কার্ডের বর্ডার
   static const Color divider = Color(0xFFF1F5F9);       // কার্ডের ভিতরের ডিভাইডার
 
+
+//reusable table heading Gradiant color
+  static const Color tblHeadingStart = Color(0xFF4C9EEB);
+  static const Color tblHeadingEnd = Color(0xFF6B4EE6);
+
+
+//reusable Status Card Gradiant color
+  static const Color StatusCard = Color(0xFFD6E4FF);
+  static const Color cardBorder = Color(0xFFD6E4FF);
+
+
 }
 /*
 Teal

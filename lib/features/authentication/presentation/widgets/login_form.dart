@@ -6,7 +6,8 @@ import 'auth_button.dart';
 import 'auth_footer.dart';
 
 class LoginForm extends StatefulWidget {
-  final VoidCallback onLoginPressed;
+  final Future<void> Function(String email, String password)
+  onLoginPressed;
 
   const LoginForm({
     super.key,
@@ -21,12 +22,45 @@ class _LoginFormState extends State<LoginForm> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  bool _isPasswordVisible = true;
+  bool _isLoading = false;
+
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter email and password.'),
+        ),
+      );
+      return;
+    }
+
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      await widget.onLoginPressed(email, password);
+
+      if (mounted) {
+        _passwordController.clear();
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -77,13 +111,26 @@ class _LoginFormState extends State<LoginForm> {
           const SizedBox(height: 15),
 
           // Password Field
+
           TextField(
             controller: _passwordController,
-            obscureText: true,
+            obscureText: !_isPasswordVisible,
             decoration: InputDecoration(
               labelText: 'Password',
               prefixIcon: const Icon(Icons.lock),
               prefixIconColor: AppColors.authText,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _isPasswordVisible
+                      ? Icons.visibility
+                      : Icons.visibility_off,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isPasswordVisible = !_isPasswordVisible;
+                  });
+                },
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: const BorderSide(
@@ -93,6 +140,7 @@ class _LoginFormState extends State<LoginForm> {
               ),
             ),
           ),
+
 
           // Forgot Password
           Align(
@@ -114,12 +162,11 @@ class _LoginFormState extends State<LoginForm> {
           SizedBox(
             width: double.infinity,
             height: 48,
-            child: AuthButton(
-              text: 'Login',
-              onPressed: () {
-                // Login logic will go here.
-                debugPrint('Login button pressed');
-              },
+            child:
+            AuthButton(
+              text: _isLoading ? 'Logging in...' : 'Login',
+              onPressed: _handleLogin,
+              isLoading: _isLoading,
             ),
           ),
           const SizedBox(height: 20),
