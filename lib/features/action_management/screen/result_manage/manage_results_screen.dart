@@ -1,4 +1,7 @@
+
 import 'package:flutter/material.dart';
+import 'package:result_management_system/features/action_management/screen/result_manage/widget/result_approve_card.dart';
+//import 'package:result_management_system/features/action_management/screen/result_manage/widget/result_approve_tbl.dart';
 import 'package:result_management_system/features/action_management/screen/result_manage/widget/result_card.dart';
 import 'package:result_management_system/shared/widgets/app_bar.dart';
 
@@ -6,29 +9,96 @@ class ManageResultsScreen extends StatefulWidget {
   const ManageResultsScreen({super.key});
 
   @override
-  State<ManageResultsScreen> createState() => _ManageResultsScreenState();
+  State<ManageResultsScreen> createState() =>
+      _ManageResultsScreenState();
 }
 
 class _ManageResultsScreenState extends State<ManageResultsScreen> {
-  // Dropdown Selected Values
+  // Selected dropdown values
   String selectedExam = 'Annual 2026';
   String selectedClass = 'Class 9';
 
-  // Dropdown Options
-  final List<String> examList = ['Annual 2026', 'Mid Term 2026', 'First Term 2026'];
-  final List<String> classList = ['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
+  // Dropdown options
+  final List<String> examList = [
+    'Annual 2026',
+    'Mid Term 2026',
+    'First Term 2026',
+  ];
+
+  final List<String> classList = [
+    'Class 6',
+    'Class 7',
+    'Class 8',
+    'Class 9',
+    'Class 10',
+  ];
+
+  // Temporary dummy result data
+  final List<Map<String, dynamic>> resultData = [
+    {
+      'sl': 1,
+      'studentId': 'STD-1001',
+      'roll': '01',
+      'totalMark': 850,
+      'gpa': '5.00',
+      'status': 'Pending',
+    },
+    {
+      'sl': 2,
+      'studentId': 'STD-1002',
+      'roll': '02',
+      'totalMark': 720,
+      'gpa': '4.50',
+      'status': 'Reviewed',
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      //backgroundColor: const Color(0xFFF8FAFC),
       appBar: UserAppBar(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Select Filters Row (Exam & Class)
+            const SizedBox(height: 8),
+
+            // Result Overview
+            const Text(
+              'Result Overview',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Overview Statistics
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              childAspectRatio: 2.2,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              children: const [
+                ResultStatCard(
+                  title: 'Pending',
+                  value: '18',
+                ),
+                ResultStatCard(
+                  title: 'Approved',
+                  value: '0',
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // Exam and Class Filters
             Row(
               children: [
                 Expanded(
@@ -36,8 +106,12 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
                     label: 'Select Exam',
                     value: selectedExam,
                     items: examList,
-                    onChanged: (val) {
-                      if (val != null) setState(() => selectedExam = val);
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          selectedExam = value;
+                        });
+                      }
                     },
                   ),
                 ),
@@ -47,8 +121,12 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
                     label: 'Select Class',
                     value: selectedClass,
                     items: classList,
-                    onChanged: (val) {
-                      if (val != null) setState(() => selectedClass = val);
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          selectedClass = value;
+                        });
+                      }
                     },
                   ),
                 ),
@@ -57,36 +135,25 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
 
             const SizedBox(height: 24),
 
-            // 2. Result Overview Section Title
+            // Student Result Approval Cards
             const Text(
-              'Result Overview',
+              'Student Results',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF0F172A),
               ),
             ),
+
             const SizedBox(height: 12),
 
-            // Result Overview Stats Cards Grid (Reusable Component)
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 2.2,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              children: const [
-                ResultStatCard(title: 'Total Students', value: '120'),
-                ResultStatCard(title: 'Marks Entered', value: '85%'),
-                ResultStatCard(title: 'Pending', value: '18'),
-                ResultStatCard(title: 'Approved', value: '0'),
-              ],
+            ResultApproveCard(
+              resultData: resultData,
             ),
 
             const SizedBox(height: 24),
 
-            // 3. Management Actions Section Title
+            // Management Actions
             const Text(
               'Management Actions',
               style: TextStyle(
@@ -95,9 +162,9 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
                 color: Color(0xFF0F172A),
               ),
             ),
+
             const SizedBox(height: 12),
 
-            // Management Action Cards List (Reusable Component)
             ResultActionCard(
               icon: Icons.assignment_turned_in_outlined,
               iconBgColor: const Color(0xFFFEF2F2),
@@ -108,6 +175,7 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
                 // TODO: Navigate to Result Approval Screen
               },
             ),
+
             ResultActionCard(
               icon: Icons.calculate_outlined,
               iconBgColor: const Color(0xFFF3E8FF),
@@ -118,6 +186,7 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
                 // TODO: Navigate to Grade Setup Screen
               },
             ),
+
             ResultActionCard(
               icon: Icons.bar_chart_rounded,
               iconBgColor: const Color(0xFFECFDF5),
@@ -134,7 +203,7 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
     );
   }
 
-  // Helper widget for Dropdowns
+  // Reusable dropdown field
   Widget _buildDropdownField({
     required String label,
     required String value,
@@ -158,19 +227,24 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300, width: 1),
+            border: Border.all(
+              color: Colors.grey.shade300,
+            ),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B)),
+              icon: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Color(0xFF64748B),
+              ),
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: Color(0xFF0F172A),
               ),
-              items: items.map((String item) {
+              items: items.map((item) {
                 return DropdownMenuItem<String>(
                   value: item,
                   child: Text(item),
