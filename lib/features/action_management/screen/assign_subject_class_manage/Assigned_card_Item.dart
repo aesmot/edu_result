@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:result_management_system/core/constant/app_colors.dart';
 import 'edit_assign_sub&class_screen.dart'; // আপনার এডিট পেজের সঠিক ফাইল নেম
 
-class AssignmentCardItem extends StatelessWidget {
+class AssignedCardItem extends StatelessWidget {
   final int serialNumber;
   final String teacherName;
+  final String teacherDesignation;
   final String className;
   final String subjectName;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final String assignmentId;
 
-  const AssignmentCardItem({
+  const AssignedCardItem({
     super.key,
     this.serialNumber = 0,
     this.teacherName = '',
+    this.teacherDesignation = '',
     this.className = '',
     this.subjectName = '',
     this.onEdit = _emptyCallback,
@@ -32,7 +35,7 @@ class AssignmentCardItem extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.grey.shade300,
+          color: AppColors.StatusCard,
           width: 1, // Border 1
         ),
         boxShadow: [
@@ -77,6 +80,7 @@ class AssignmentCardItem extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+
               ],
             ),
           ),
