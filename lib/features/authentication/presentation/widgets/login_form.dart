@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_text_styles.dart';
+import '../screens/signup_screen.dart';
 import 'auth_button.dart';
 import 'auth_footer.dart';
 
@@ -175,7 +176,12 @@ class _LoginFormState extends State<LoginForm> {
             titleText: "Don't have an account? ",
             actionText: "Sign Up",
             onTap: () {
-              // SignUpScreen-e jawar logic
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SignUpScreen(),
+                ),
+              );
             },
           ),
            ////////Under portion text end

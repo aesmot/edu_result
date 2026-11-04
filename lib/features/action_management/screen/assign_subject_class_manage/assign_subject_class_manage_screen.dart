@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:result_management_system/shared/widgets/app_bar.dart';
 
-import 'assignment_card_Item.dart';
+import 'assigned_card_Item.dart';
 import 'edit_assign_sub&class_screen.dart';
 
 // Dummy Model class for Assignment Data
@@ -50,8 +50,8 @@ class _AssignClassSubjectScreenState extends State<AssignClassSubjectScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-      appBar: UserAppBar(),
+          appBar: UserAppBar(),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -59,7 +59,7 @@ class _AssignClassSubjectScreenState extends State<AssignClassSubjectScreen> {
           children: [
             // Section Title
             const Text(
-              'CURRENT ASSIGNMENTS',
+              'CURRENT ASSIGNED SUBJECT FOR TEACHER',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
@@ -76,7 +76,7 @@ class _AssignClassSubjectScreenState extends State<AssignClassSubjectScreen> {
               itemCount: assignments.length,
               itemBuilder: (context, index) {
                 final item = assignments[index];
-                return AssignmentCardItem(
+                return AssignedCardItem(
                   serialNumber: index + 1,
                   teacherName: item.teacherName,
                   className: item.className,

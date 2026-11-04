@@ -8,7 +8,7 @@ class ResultApproveCard extends StatelessWidget {
   });
 
   final List<Map<String, dynamic>> resultData;
-
+  //final List<Map<String, dynamic>> resultData;
   @override
   Widget build(BuildContext context) {
     if (resultData.isEmpty) {

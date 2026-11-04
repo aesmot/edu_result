@@ -9,7 +9,7 @@ class ClassListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 10 theke 1 porjonto list generate kora (ekhane '-' sign-ti thakbe)
-    final List<int> classes = List.generate(10, (index) => 10 - index);
+    final List<int> classes = List.generate(10, (index) => index + 1);
 
     return ListView.builder(
       shrinkWrap: true,
@@ -20,7 +20,7 @@ class ClassListScreen extends StatelessWidget {
         final isPinkTheme = classNum >= 9;
 
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
+          padding: const EdgeInsets.only(bottom: 8.0),
           child: Material(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -39,7 +39,7 @@ class ClassListScreen extends StatelessWidget {
 
               borderRadius: BorderRadius.circular(16),
               child: Ink(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
@@ -53,18 +53,14 @@ class ClassListScreen extends StatelessWidget {
                       width: 50,
                       height: 50,
                       decoration: BoxDecoration(
-                        color: isPinkTheme
-                            ? const Color(0xFFFFEBEE)
-                            : const Color(0xFFF0F4FF),
+                        color: const Color(0xFFEFF6FF),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
                         child: Text(
                           classNum < 10 ? '0$classNum' : '$classNum',
                           style: TextStyle(
-                            color: isPinkTheme
-                                ? const Color(0xFFE53935)
-                                : AppColors.primaryGradientStart,
+                            color : AppColors.primaryGradientStart,
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
                           ),
@@ -88,7 +84,7 @@ class ClassListScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 3),
                           const Text(
-                            'Subject List & Results',
+                            'View Subjects and manage Marks',
                             style: TextStyle(
                               color: Color(0xFF64748B),
                               fontSize: 12,
@@ -102,8 +98,8 @@ class ClassListScreen extends StatelessWidget {
                     // Dane Arrow Icon
                     const Icon(
                       Icons.arrow_forward_ios_rounded,
-                      size: 16,
-                      color: Color(0xFF94A3B8),
+                      size: 20,
+                        color: AppColors.primaryGradientStart,
                     ),
                   ],
                 ),

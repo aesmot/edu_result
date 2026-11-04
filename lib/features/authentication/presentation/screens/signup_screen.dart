@@ -4,6 +4,7 @@ import '../../../../core/constant/app_colors.dart';
 import '../widgets/login_form.dart';
 import '../widgets/signUpForm.dart';
 import 'login_background.dart';
+import 'login_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -45,8 +46,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     return LoginBackground(
       child: SignUpForm(
-          onLoginPressed: (){}
-
+        onLoginPressed: () {
+          // এখানে 'LogIn' এ প্রেস করলে সরাসরি LoginScreen-এ চলে যাবে
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => const LoginScreen(),
+            ),
+          );
+        },
     ),
     );
   }

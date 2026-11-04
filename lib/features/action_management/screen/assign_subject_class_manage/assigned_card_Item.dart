@@ -16,7 +16,7 @@ class AssignedCardItem extends StatelessWidget {
     super.key,
     this.serialNumber = 0,
     this.teacherName = '',
-    this.teacherDesignation = '',
+    this.teacherDesignation = 'Professor',
     this.className = '',
     this.subjectName = '',
     this.onEdit = _emptyCallback,
@@ -55,29 +55,54 @@ class AssignedCardItem extends StatelessWidget {
             child: Row(
               children: [
                 // Serial Number
-                SizedBox(
-                  width: 22,
+                Container(
+
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppColors.StatusCard,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   child: Text(
-                    '$serialNumber.',
+                    '$serialNumber',
                     style: const TextStyle(
                       fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF64748B),
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
+                const SizedBox(width: 10),
 
-                // Teacher Name
+                // Teacher Name & Designation
                 Expanded(
-                  child: Text(
-                    teacherName,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        teacherName,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0F172A),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        teacherDesignation,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
 
