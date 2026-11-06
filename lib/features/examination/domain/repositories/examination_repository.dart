@@ -1,6 +1,6 @@
 
-import '../models/examination.dart';
+import '../models/examination_model.dart';
 
 abstract class ExaminationRepository {
-  Future<List<Examination>> getActiveExaminations();
+  Future<List<ExaminationModel>> getActiveExaminations();
 }

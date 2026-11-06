@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import '../../../../core/constant/app_colors.dart';
@@ -20,7 +19,6 @@ class MarkExamInfoCard extends StatelessWidget {
   final String academicYear;
   final int fullMarks;
 
-  @override
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -99,7 +97,6 @@ class _InfoChip extends StatelessWidget {
         color: Colors.white, // Chip gulo white background-e thakbe
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          //color: const Color(0xFFD6E4FF),
           color: AppColors.cardBorder,
         ),
       ),

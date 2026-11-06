@@ -21,33 +21,40 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     ref.listen<AsyncValue<String?>>(
       authControllerProvider,
           (previous, next) {
-        next.when(
-          loading: () {},
-          data: (role) {
-            if (role == null || !context.mounted) return;
+        // শুধু loading থেকে data তে গেলে চালান, নাহলে বারবার trigger হতে পারে
+        if (previous is AsyncLoading && next is AsyncData<String?>) {
+          if (!context.mounted) return;
+          final role = next.value;
 
-            // Signup successful hole role onujayi dashboard-e niye jabe
-            AuthRoleRouter.navigateByRole(
-              context: context,
-              role: role,
-            );
-          },
-          error: (error, stackTrace) {
-            if (!context.mounted) return;
-
-            // Kono error asle SnackBar-e show korbe
+          if (role == null) {
+            // Approval pending
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  error.toString().replaceFirst('Exception: ', ''),
-                ),
+              const SnackBar(
+                content: Text('Account তৈরি হয়েছে! Admin approval এর জন্য অপেক্ষা করুন।'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 4),
               ),
             );
-          },
-        );
+            // এখানে চাইলে login screen এ ফেরত যেতে পারেন:
+            // Navigator.pop(context);
+          } else {
+            AuthRoleRouter.navigateByRole(context: context, role: role);
+          }
+        }
+
+        if (next is AsyncError) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                next.error.toString().replaceFirst('Exception: ', ''),
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       },
     );
-
     return LoginBackground(
       child: SignUpForm(
         onLoginPressed: () {
@@ -55,12 +62,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           Navigator.pop(context);
         },
         onSignupSubmitted: (name, identifier, password) async {
-          // Riverpod notifier er maddhome signup method call korchi
           await ref.read(authControllerProvider.notifier).signup(
             name: name,
             identifier: identifier,
             password: password,
           );
+
+          // signup সফল হলে true, error হলে false
+          return !ref.read(authControllerProvider).hasError;
         },
       ),
     );

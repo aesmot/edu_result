@@ -1,15 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:result_management_system/features/authentication/presentation/screens/signup_screen.dart';
-import 'package:result_management_system/features/authentication/splash/splash_screen.dart';
-
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import 'core/widgets/curved_background.dart';
-
-import 'features/admin/screens/admin_screen.dart';
 import 'features/authentication/presentation/screens/auth_gate_screen.dart';
-import 'features/authentication/presentation/screens/login_screen.dart';
+
 
 
 
@@ -36,18 +29,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
+      //title: 'Flutter Demo',
       theme: ThemeData(
 
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
         home: const AuthGateScreen()
-      //home: const LoginScreen(),
-     // home: const SignUpScreen(),
-      //home: const AdminScreen(),
-      //home: TeacherListScreen(),
-      //home: const ResultScreen(),
-      //home: const ActionManageScreen(),
     );
   }
 }

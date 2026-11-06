@@ -10,7 +10,8 @@ import 'auth_method_button.dart'; // আলাদা করা মেথড ব�
 class SignUpForm extends StatefulWidget {
   final VoidCallback onLoginPressed;
   // নতুন একটি ফাংশন যোগ করুন যা ডেটা রিসিভ করবে:
-  final Function(String name, String identifier, String password) onSignupSubmitted;
+  final Future<bool> Function(String name, String identifier, String password)
+  onSignupSubmitted;
 
   const SignUpForm({
     super.key,
@@ -45,15 +46,30 @@ class _SignUpFormState extends State<SignUpForm> {
     super.dispose();
   }
 
-  void _handleSignup() {
+  Future<void> _handleSignup() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // কন্ট্রোলার থেকে টেক্সট নিয়ে পাস করে দেওয়া হচ্ছে
-    widget.onSignupSubmitted(
+    final success = await widget.onSignupSubmitted(
       _nameController.text.trim(),
       _identifierController.text.trim(),
       _passwordController.text,
     );
+
+    // শুধু account তৈরি হলে clear হবে, error হলে লেখা থাকবে
+    if (success && mounted) {
+      _nameController.clear();
+      _identifierController.clear();
+      _passwordController.clear();
+      _confirmPasswordController.clear();
+
+      setState(() {
+        _isPasswordVisible = false;
+        _isConfirmPasswordVisible = false;
+      });
+
+      // controller clear করার পর form-এর validation error যেন না দেখায়
+      _formKey.currentState?.reset();
+    }
   }
 
   @override

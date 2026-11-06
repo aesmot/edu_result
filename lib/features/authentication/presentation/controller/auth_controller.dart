@@ -1,3 +1,4 @@
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/auth_providers.dart';
@@ -11,12 +12,11 @@ AsyncNotifierProvider<AuthController, String?>(
 class AuthController extends AsyncNotifier<String?> {
   @override
   Future<String?> build() async {
-    // Restore the existing session when the app starts.
     final repository = ref.read(authRepositoryProvider);
     return repository.restoreSession();
   }
 
-  /// Authenticates a user and stores the assigned role.
+  /// Authenticates an existing user and retrieves their role.
   Future<void> login({
     required String email,
     required String password,
@@ -35,7 +35,10 @@ class AuthController extends AsyncNotifier<String?> {
     });
   }
 
-  /// Registers a new user and signs them in or handles signup flow.
+  /// Registers a new user.
+  ///
+  /// Does not call login() after signup.
+  /// A newly registered user must wait for admin approval.
   Future<void> signup({
     required String name,
     required String identifier,
@@ -46,21 +49,14 @@ class AuthController extends AsyncNotifier<String?> {
     state = await AsyncValue.guard(() async {
       final repository = ref.read(authRepositoryProvider);
 
-      // 1. Repository theke signup method call korchi
       await repository.signup(
-        name: name,
-        identifier: identifier,
+        name: name.trim(),
+        identifier: identifier.trim(),
         password: password,
       );
 
-      // 2. Signup successful hoile automatic login ba role restore korbe
-      // Athoba login call kore role fetch kore nite paren:
-      final role = await repository.login(
-        email: identifier,
-        password: password,
-      );
-
-      return role.toLowerCase();
+      // Signup success does not mean dashboard access.
+      return null;
     });
   }
 
@@ -70,7 +66,9 @@ class AuthController extends AsyncNotifier<String?> {
 
     state = await AsyncValue.guard(() async {
       final repository = ref.read(authRepositoryProvider);
+
       await repository.signOut();
+
       return null;
     });
   }

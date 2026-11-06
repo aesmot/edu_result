@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../data/repositories/supabase_examination_repository.dart';
-import '../domain/models/examination.dart';
+import '../domain/models/examination_model.dart';
 import '../domain/repositories/examination_repository.dart';
 
 final examinationRepositoryProvider =
@@ -15,7 +15,7 @@ Provider<ExaminationRepository>((ref) {
 });
 
 final examinationsProvider =
-FutureProvider<List<Examination>>((ref) async {
+FutureProvider<List<ExaminationModel>>((ref) async {
   debugPrint('[ExaminationProvider] Fetch started');
   //debugPrint('[ExaminationProvider] Fetch started');
 

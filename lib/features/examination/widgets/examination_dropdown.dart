@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/examination_providers.dart';
-import '../domain/models/examination.dart';
+import '../domain/models/examination_model.dart';
 
 class ExaminationDropdown extends ConsumerWidget {
   final String? selectedExaminationId;
-  final ValueChanged<Examination?> onChanged;
+  final ValueChanged<ExaminationModel?> onChanged;
 
   const ExaminationDropdown({
     super.key,
@@ -75,7 +75,7 @@ class ExaminationDropdown extends ConsumerWidget {
                 );
               }).toList(),
               onChanged: (id) {
-                Examination? selectedExam;
+                ExaminationModel? selectedExam;
 
                 for (final exam in examinations) {
                   if (exam.id == id) {

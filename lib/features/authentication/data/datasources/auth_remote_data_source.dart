@@ -7,18 +7,26 @@ class AuthRemoteDataSource {
 
   final SupabaseClient _supabase;
 
-
-  /// Signs up a new user and saves their profile details.
+  /// Signs up a new user using either email or mobile number.
   Future<void> signUp({
     required String name,
     required String identifier,
     required String password,
   }) async {
-    // 1. Supabase Auth-e user create korchi
+    final value = identifier.trim();
+    final isEmail = value.contains('@');
+
+    // Normalize Bangladeshi mobile numbers to E.164 format.
+    final phone = isEmail ? null : _normalizeBdPhone(value);
+
+    // Create Supabase Auth account.
     final response = await _supabase.auth.signUp(
-      email: identifier,
+      email: isEmail ? value.toLowerCase() : null,
+      phone: phone,
       password: password,
-      data: {'name': name},
+      data: {
+        'name': name.trim(),
+      },
     );
 
     final user = response.user;
@@ -27,12 +35,43 @@ class AuthRemoteDataSource {
       throw Exception('Signup failed. Please try again.');
     }
 
-    // 2. Profiles table-e user_id ebong name save korchi
+    // Create the user profile with pending approval.
     await _supabase.from('profiles').upsert({
       'user_id': user.id,
-      'name': name,
+      'role': 'teacher',
+      'approval_status': 'pending',
+    });
+
+    //new teacher add code
+    await _supabase.from('teacher_profiles').insert({
+      'user_id': user.id,
+      'full_name': name.trim(),
+      'email': isEmail ? value.toLowerCase() : '',
+      'phone': phone ?? '',
     });
   }
+
+  /// Converts Bangladeshi mobile numbers to E.164 format.
+  String _normalizeBdPhone(String value) {
+    final cleaned = value.replaceAll(RegExp(r'[\s-]'), '');
+
+    if (RegExp(r'^\+8801[3-9]\d{8}$').hasMatch(cleaned)) {
+      return cleaned;
+    }
+
+    if (RegExp(r'^01[3-9]\d{8}$').hasMatch(cleaned)) {
+      return '+88${cleaned}';
+    }
+
+    if (RegExp(r'^8801[3-9]\d{8}$').hasMatch(cleaned)) {
+      return '+$cleaned';
+    }
+
+    throw Exception(
+      'Please enter a valid Bangladeshi mobile number.',
+    );
+  }
+
   /// Signs in the user and retrieves their assigned role.
   Future<String> signIn({
     required String email,
@@ -53,8 +92,6 @@ class AuthRemoteDataSource {
   }
 
   /// Restores the role for the currently authenticated user.
-  ///
-  /// Returns null when no authenticated session exists.
   Future<String?> restoreSession() async {
     final user = _supabase.auth.currentUser;
 
