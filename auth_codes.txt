@@ -1,0 +1,1425 @@
+﻿--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\data\datasources\auth_remote_data_source.dart ---
+
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// Handles authentication and profile queries through Supabase.
+class AuthRemoteDataSource {
+  AuthRemoteDataSource(this._supabase);
+
+  final SupabaseClient _supabase;
+
+
+  /// Signs up a new user and saves their profile details.
+  Future<void> signUp({
+    required String name,
+    required String identifier,
+    required String password,
+  }) async {
+    // 1. Supabase Auth-e user create korchi
+    final response = await _supabase.auth.signUp(
+      email: identifier,
+      password: password,
+      data: {'name': name},
+    );
+
+    final user = response.user;
+
+    if (user == null) {
+      throw Exception('Signup failed. Please try again.');
+    }
+
+    // 2. Profiles table-e user_id ebong name save korchi
+    await _supabase.from('profiles').upsert({
+      'user_id': user.id,
+      'name': name,
+    });
+  }
+  /// Signs in the user and retrieves their assigned role.
+  Future<String> signIn({
+    required String email,
+    required String password,
+  }) async {
+    final response = await _supabase.auth.signInWithPassword(
+      email: email.trim(),
+      password: password,
+    );
+
+    final user = response.user;
+
+    if (user == null) {
+      throw Exception('Login failed. Please try again.');
+    }
+
+    return _getRoleForUser(user.id);
+  }
+
+  /// Restores the role for the currently authenticated user.
+  ///
+  /// Returns null when no authenticated session exists.
+  Future<String?> restoreSession() async {
+    final user = _supabase.auth.currentUser;
+
+    if (user == null) {
+      return null;
+    }
+
+    try {
+      return await _getRoleForUser(user.id);
+    } catch (_) {
+      await _supabase.auth.signOut();
+      rethrow;
+    }
+  }
+
+  /// Retrieves and validates the user's assigned role.
+  Future<String> _getRoleForUser(String userId) async {
+    final profile = await _supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    final role = (profile?['role'] as String?)?.toLowerCase();
+
+    if (role != 'admin' && role != 'teacher') {
+      throw Exception('No valid role assigned to this account.');
+    }
+
+    return role!;
+  }
+
+  /// Signs out the currently authenticated user.
+  Future<void> signOut() async {
+    await _supabase.auth.signOut();
+  }
+}
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\domain\entities\auth_user.dart ---
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\domain\repositories\auth_repository.dart ---
+
+/// Defines the authentication operations required by the app.
+abstract interface class AuthRepository {
+  Future<String> login({
+    required String email,
+    required String password,
+  });
+
+  Future<void> signup({
+    required String name,
+    required String identifier,
+    required String password,
+  });
+
+  Future<String?> restoreSession();
+
+  Future<void> signOut();
+}
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\domain\repositories\auth_repository_impl.dart ---
+import '../../data/datasources/auth_remote_data_source.dart';
+import 'auth_repository.dart';
+
+/// Implements the authentication contract using the data source.
+class AuthRepositoryImpl implements AuthRepository {
+  AuthRepositoryImpl(this._dataSource);
+
+  final AuthRemoteDataSource _dataSource;
+
+  // 1. Add the missing login method here
+  @override
+  Future<String> login({
+    required String email,
+    required String password,
+  }) async {
+    return await _dataSource.signIn(
+      email: email.trim(),
+      password: password,
+    );
+  }
+
+  @override
+  Future<void> signup({
+    required String name,
+    required String identifier,
+    required String password,
+  }) async {
+    return await _dataSource.signUp(
+      name: name.trim(),
+      identifier: identifier.trim(),
+      password: password,
+    );
+  }
+
+  @override
+  Future<String?> restoreSession() {
+    return _dataSource.restoreSession();
+  }
+
+  @override
+  Future<void> signOut() {
+    return _dataSource.signOut();
+  }
+}
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\controller\auth_controller.dart ---
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../providers/auth_providers.dart';
+
+/// Manages authentication state and session restoration.
+final authControllerProvider =
+AsyncNotifierProvider<AuthController, String?>(
+AuthController.new,
+);
+
+class AuthController extends AsyncNotifier<String?> {
+@override
+Future<String?> build() async {
+// Restore the existing session when the app starts.
+final repository = ref.read(authRepositoryProvider);
+return repository.restoreSession();
+}
+
+/// Authenticates a user and stores the assigned role.
+Future<void> login({
+required String email,
+required String password,
+}) async {
+state = const AsyncLoading();
+
+state = await AsyncValue.guard(() async {
+final repository = ref.read(authRepositoryProvider);
+
+final role = await repository.login(
+email: email.trim(),
+password: password,
+);
+
+return role.toLowerCase();
+});
+}
+
+/// Signs out the current user and clears authentication state.
+Future<void> logout() async {
+state = const AsyncLoading();
+
+state = await AsyncValue.guard(() async {
+final repository = ref.read(authRepositoryProvider);
+await repository.signOut();
+return null;
+});
+}
+}
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\providers\auth_providers.dart ---
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../data/datasources/auth_remote_data_source.dart';
+
+import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/auth_repository_impl.dart';
+
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  final client = Supabase.instance.client;
+  final dataSource = AuthRemoteDataSource(client);
+
+  return AuthRepositoryImpl(dataSource);
+});
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\screens\auth_gate_screen.dart ---
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../controller/auth_controller.dart';
+import 'auth_role_router.dart';
+import 'login_screen.dart';
+
+/// Determines which screen to show based on the authentication state.
+class AuthGateScreen extends ConsumerWidget {
+const AuthGateScreen({super.key});
+
+@override
+Widget build(BuildContext context, WidgetRef ref) {
+final authState = ref.watch(authControllerProvider);
+
+return authState.when(
+loading: () => const Scaffold(
+body: Center(
+child: CircularProgressIndicator(),
+),
+),
+error: (error, stackTrace) => Scaffold(
+body: Center(
+child: Padding(
+padding: const EdgeInsets.all(24),
+child: Column(
+mainAxisSize: MainAxisSize.min,
+children: [
+const Text(
+'Unable to restore your session.',
+textAlign: TextAlign.center,
+),
+const SizedBox(height: 12),
+ElevatedButton(
+onPressed: () {
+ref.invalidate(authControllerProvider);
+},
+child: const Text('Try Again'),
+),
+],
+),
+),
+),
+),
+data: (role) {
+if (role == null) {
+return const LoginScreen();
+}
+
+return _DashboardRedirect(role: role);
+},
+);
+}
+}
+
+/// Opens the correct dashboard for the authenticated user's role.
+class _DashboardRedirect extends StatefulWidget {
+const _DashboardRedirect({required this.role});
+
+final String role;
+
+@override
+State<_DashboardRedirect> createState() => _DashboardRedirectState();
+}
+
+class _DashboardRedirectState extends State<_DashboardRedirect> {
+@override
+void initState() {
+super.initState();
+
+WidgetsBinding.instance.addPostFrameCallback((_) {
+if (!mounted) return;
+
+AuthRoleRouter.navigateByRole(
+context: context,
+role: widget.role,
+);
+});
+}
+
+@override
+Widget build(BuildContext context) {
+return const Scaffold(
+body: Center(
+child: CircularProgressIndicator(),
+),
+);
+}
+}
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\screens\auth_role_router.dart ---
+
+import 'package:flutter/material.dart';
+
+import '../../../admin/screens/admin_screen.dart';
+import '../../../teacher/dashboard/screens/teacher_dashboard_screen.dart';
+
+/// Routes authenticated users to their assigned dashboard.
+class AuthRoleRouter {
+  AuthRoleRouter._();
+
+  static void navigateByRole({
+    required BuildContext context,
+    required String role,
+  }) {
+    final Widget screen;
+
+    switch (role) {
+      case 'admin':
+        screen = const AdminScreen();
+        break;
+
+      case 'teacher':
+        screen = TeacherDashboardScreen();
+        break;
+
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No valid role assigned to this account.'),
+          ),
+        );
+        return;
+    }
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => screen,
+      ),
+          (route) => false,
+    );
+  }
+}
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\screens\forgot_password_screen.dart ---
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\screens\login_background.dart ---
+import 'package:flutter/material.dart';
+import '../../../../core/constant/app_colors.dart';
+
+class LoginBackground extends StatelessWidget {
+  final Widget child; // Ekhane form ba onno widget pass kora hobe
+
+  const LoginBackground({
+    super.key,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
+        child: SizedBox(
+          height: size.height,
+          child: Stack(
+            children: [
+              // à§§. à¦‰à¦ªà¦°à§‡à¦° à¦¬à§à¦¯à¦¾à¦•à¦—à§à¦°à¦¾à¦‰à¦¨à§à¦¡ à¦“ à¦•à¦¾à¦°à§à¦­ à¦ªà¦¾à¦°à§à¦Ÿ
+              ClipPath(
+                clipper: BackgroundClipper(),
+                child: Container(
+                  height: size.height * 0.45,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primaryGradientStart,
+                        AppColors.primaryGradientEnd,
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                  // Ekhane Center-er bodole Padding ba Align use korbo
+                  child: Container(
+                    alignment: Alignment.topCenter, // Upore align korbe
+                    padding: const EdgeInsets.only(top: 80.0), // Upor theke space dibe
+                    child: const Text(
+                      'Welcome Back',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+//SizedBox(height: 40,),
+              // à§¨. à¦®à¦¾à¦à¦–à¦¾à¦¨à§‡à¦° à¦«à¦°à§à¦® à¦¬à¦¾ à¦•à¦¾à¦°à§à¦¡
+              Positioned(
+                top: size.height * 0.28,
+                left: 20,
+                right: 20,
+                child: child,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Custom Clipper
+class BackgroundClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    path.lineTo(0, size.height - 50);
+
+    var firstControlPoint = Offset(size.width / 2, size.height);
+    var firstEndPoint = Offset(size.width, size.height - 50);
+
+    path.quadraticBezierTo(
+      firstControlPoint.dx,
+      firstControlPoint.dy,
+      firstEndPoint.dx,
+      firstEndPoint.dy,
+    );
+
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\screens\login_screen.dart ---
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../controller/auth_controller.dart';
+
+import '../widgets/login_form.dart';
+import 'auth_role_router.dart';
+import 'login_background.dart';
+
+class LoginScreen extends ConsumerStatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<AsyncValue<String?>>(
+      authControllerProvider,
+          (previous, next) {
+        next.when(
+          loading: () {},
+          data: (role) {
+            if (role == null || !context.mounted) return;
+
+            AuthRoleRouter.navigateByRole(
+              context: context,
+              role: role,
+            );
+          },
+          error: (error, stackTrace) {
+            if (!context.mounted) return;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  error.toString().replaceFirst('Exception: ', ''),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    return LoginBackground(
+      child: LoginForm(
+        onLoginPressed: (email, password) async {
+          await ref.read(authControllerProvider.notifier).login(
+            email: email,
+            password: password,
+          );
+        },
+      ),
+    );
+  }
+}
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\screens\signup_screen.dart ---
+import 'package:flutter/material.dart';
+
+import '../../../../core/constant/app_colors.dart';
+import '../widgets/login_form.dart';
+import '../widgets/signUpForm.dart';
+import 'login_background.dart';
+import 'login_screen.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: SignUpScreen(),
+    );
+  }
+}
+
+class SignUpScreen extends StatefulWidget {
+  const SignUpScreen({super.key});
+
+  @override
+  State<SignUpScreen> createState() => _SignUpScreenState();
+}
+
+class _SignUpScreenState extends State<SignUpScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
+    return LoginBackground(
+      child: SignUpForm(
+        onLoginPressed: () {
+          // Login-à¦ à¦¯à¦¾à¦“à§Ÿà¦¾à¦° à¦•à§‹à¦¡...
+        },
+        onSignupSubmitted: (name, identifier, password) {
+          // à¦à¦–à¦¾à¦¨à§‡ à¦†à¦ªà¦¨à¦¿ Name, Email/Mobile à¦à¦¬à¦‚ Password à¦ªà§‡à§Ÿà§‡ à¦—à§‡à¦²à§‡à¦¨!
+          print('Name: $name, ID: $identifier, Pass: $password');
+          // à¦à¦–à¦¨ à¦à¦—à§à¦²à§‹ à¦¦à¦¿à§Ÿà§‡ API Call à¦¬à¦¾ à¦ªà¦°à¦¬à¦°à§à¦¤à§€ à¦²à¦œà¦¿à¦• à¦¹à§à¦¯à¦¾à¦¨à§à¦¡à§‡à¦² à¦•à¦°à¦¤à§‡ à¦ªà¦¾à¦°à¦¬à§‡à¦¨à¥¤
+        },
+      )
+    );
+  }
+}
+
+// Custom Clipper
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\widgets\authInput_decoration.dart ---
+import 'package:flutter/material.dart';
+import '../../../../core/constant/app_colors.dart';
+
+class AuthInputDecoration {
+  static InputDecoration getDecoration({
+    required String label,
+    required IconData icon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon),
+      prefixIconColor: AppColors.authText,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(
+          color: Color(0xFF14B8A6),
+          width: 1,
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(
+          color: Color(0xFF14B8A6),
+          width: 1,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(
+          color: Color(0xFF14B8A6),
+          width: 2,
+        ),
+      ),
+    );
+  }
+}
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\widgets\auth_button.dart ---
+
+import 'package:flutter/material.dart';
+
+import '../../../../core/constant/app_colors.dart';
+
+class AuthButton extends StatelessWidget {
+  const AuthButton({
+    super.key,
+    required this.text,
+    required this.onPressed,
+    this.isLoading = false,
+  });
+
+  final String text;
+  final VoidCallback onPressed;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 52,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            AppColors.authBtnStart,
+            AppColors.authBtnEnd,
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ElevatedButton(
+        onPressed: isLoading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          disabledBackgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          disabledForegroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: isLoading
+            ? const SizedBox(
+          height: 22,
+          width: 22,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Colors.white,
+          ),
+        )
+            : Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\widgets\auth_footer.dart ---
+import 'package:flutter/material.dart';
+import '../../../../core/constant/app_colors.dart';
+
+class AuthFooter extends StatelessWidget {
+  final String titleText;     // Jemon: "Don't have an account? " ba "Already have an account? "
+  final String actionText;    // Jemon: "Sign Up" ba "Login"
+  final VoidCallback onTap;   // Click korle ki kaj korbe
+
+  const AuthFooter({
+    super.key,
+    required this.titleText,
+    required this.actionText,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          titleText,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 14,
+          ),
+        ),
+        GestureDetector(
+          onTap: onTap,
+          child: Text(
+            actionText,
+            style: const TextStyle(
+              color: AppColors.authText, // Apnar app er text color
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\widgets\auth_method_button.dart ---
+import 'package:flutter/material.dart';
+import '../../../../core/constant/app_colors.dart';
+
+class AuthMethodButton extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const AuthMethodButton({
+    super.key,
+    required this.title,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 18),
+      label: Text(title),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.authText,
+        backgroundColor: isSelected
+            ? const Color(0xFFFFFFFF)
+            : Colors.white,
+        side: BorderSide(
+          color: isSelected
+              ? const Color(0xFF69A8E3)
+              : Colors.grey.shade300,
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+  }
+}
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\widgets\email_input_field.dart ---
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\widgets\login_form.dart ---
+import 'package:flutter/material.dart';
+
+import '../../../../core/constant/app_colors.dart';
+import '../../../../core/constant/app_text_styles.dart';
+import '../screens/signup_screen.dart';
+import 'auth_button.dart';
+import 'auth_footer.dart';
+
+class LoginForm extends StatefulWidget {
+  final Future<void> Function(String email, String password)
+  onLoginPressed;
+
+  const LoginForm({
+    super.key,
+    required this.onLoginPressed,
+  });
+
+  @override
+  State<LoginForm> createState() => _LoginFormState();
+}
+
+class _LoginFormState extends State<LoginForm> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  bool _isPasswordVisible = true;
+  bool _isLoading = false;
+
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter email and password.'),
+        ),
+      );
+      return;
+    }
+
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      await widget.onLoginPressed(email, password);
+
+      if (mounted) {
+        _passwordController.clear();
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Login',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.authText,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Email Field
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+              labelText: 'Email',
+              prefixIcon: const Icon(Icons.email),
+                prefixIconColor: AppColors.authText,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(
+                  color: Color(0xFF14B8A6),
+                  width: 1,
+                ),
+
+              ),
+            ),
+          ),
+          const SizedBox(height: 15),
+
+          // Password Field
+
+          TextField(
+            controller: _passwordController,
+            obscureText: !_isPasswordVisible,
+            decoration: InputDecoration(
+              labelText: 'Password',
+              prefixIcon: const Icon(Icons.lock),
+              prefixIconColor: AppColors.authText,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _isPasswordVisible
+                      ? Icons.visibility
+                      : Icons.visibility_off,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isPasswordVisible = !_isPasswordVisible;
+                  });
+                },
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(
+                  color: Color(0xFF14B8A6),
+                  width: 1,
+                ),
+              ),
+            ),
+          ),
+
+
+          // Forgot Password
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () {},
+              child: Text( // Ekhane theke 'const' ta kete dite hobe
+                'Forgot Password?',
+                style: AppTypography.actionText.copyWith(
+                  color: AppColors.authText,
+                ), // Ekhane copyWith er bracket close holo
+              ), // Ekhane Text widget close holo
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Login Button
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child:
+            AuthButton(
+              text: _isLoading ? 'Logging in...' : 'Login',
+              onPressed: _handleLogin,
+              isLoading: _isLoading,
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Nicher Text ba Sign Up link
+          AuthFooter(
+            titleText: "Don't have an account? ",
+            actionText: "Sign Up",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SignUpScreen(),
+                ),
+              );
+            },
+          ),
+           ////////Under portion text end
+
+        ],
+      ),
+    );
+  }
+}
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\widgets\password_input_field.dart ---
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\presentation\widgets\signUpForm.dart ---
+import 'package:flutter/material.dart';
+
+import '../../../../core/constant/app_colors.dart';
+import 'authInput_decoration.dart';
+import 'auth_button.dart';
+import 'auth_footer.dart';
+import 'auth_method_button.dart'; // à¦†à¦²à¦¾à¦¦à¦¾ à¦•à¦°à¦¾ à¦®à§‡à¦¥à¦¡ à¦¬à¦¾à¦Ÿà¦¨ à¦‡à¦®à¦ªà§‹à¦°à§à¦Ÿ
+// AuthInputDecoration à¦«à¦¾à¦‡à¦²à¦Ÿà¦¿ à¦‡à¦®à¦ªà§‹à¦°à§à¦Ÿ à¦•à¦°à§à¦¨ (à¦¯à¦¦à¦¿ à¦†à¦²à¦¾à¦¦à¦¾ à¦«à¦¾à¦‡à¦²à§‡ à¦°à¦¾à¦–à§‡à¦¨)
+
+class SignUpForm extends StatefulWidget {
+  final VoidCallback onLoginPressed;
+  // à¦¨à¦¤à§à¦¨ à¦à¦•à¦Ÿà¦¿ à¦«à¦¾à¦‚à¦¶à¦¨ à¦¯à§‹à¦— à¦•à¦°à§à¦¨ à¦¯à¦¾ à¦¡à§‡à¦Ÿà¦¾ à¦°à¦¿à¦¸à¦¿à¦­ à¦•à¦°à¦¬à§‡:
+  final Function(String name, String identifier, String password) onSignupSubmitted;
+
+  const SignUpForm({
+    super.key,
+    required this.onLoginPressed,
+    required this.onSignupSubmitted, // à¦à¦–à¦¾à¦¨à§‡ à¦°à¦¿à¦•à§‹à§Ÿà¦¾à¦°à§à¦¡ à¦•à¦°à§à¦¨
+  });
+// ...
+
+
+  @override
+  State<SignUpForm> createState() => _SignUpFormState();
+}
+
+class _SignUpFormState extends State<SignUpForm> {
+  final _formKey = GlobalKey<FormState>();
+
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _identifierController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+
+  bool _isEmailSelected = true;
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _identifierController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _handleSignup() {
+    if (!_formKey.currentState!.validate()) return;
+
+    // à¦•à¦¨à§à¦Ÿà§à¦°à§‹à¦²à¦¾à¦° à¦¥à§‡à¦•à§‡ à¦Ÿà§‡à¦•à§à¦¸à¦Ÿ à¦¨à¦¿à§Ÿà§‡ à¦ªà¦¾à¦¸ à¦•à¦°à§‡ à¦¦à§‡à¦“à§Ÿà¦¾ à¦¹à¦šà§à¦›à§‡
+    widget.onSignupSubmitted(
+      _nameController.text.trim(),
+      _identifierController.text.trim(),
+      _passwordController.text,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'SignUp',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.authText,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Name Field
+            TextFormField(
+              controller: _nameController,
+              keyboardType: TextInputType.name,
+              decoration: AuthInputDecoration.getDecoration(
+                label: 'Name',
+                icon: Icons.person,
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter your name';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 15),
+
+            // Signup Method Selection (Using separate widget)
+            Row(
+              children: [
+                Expanded(
+                  child: AuthMethodButton(
+                    title: 'Email',
+                    icon: Icons.email,
+                    isSelected: _isEmailSelected,
+                    onTap: () {
+                      setState(() {
+                        _isEmailSelected = true;
+                        _identifierController.clear();
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: AuthMethodButton(
+                    title: 'Mobile Number',
+                    icon: Icons.phone_android,
+                    isSelected: !_isEmailSelected,
+                    onTap: () {
+                      setState(() {
+                        _isEmailSelected = false;
+                        _identifierController.clear();
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 15),
+
+            // Email / Mobile Number Field
+            TextFormField(
+              controller: _identifierController,
+              keyboardType: _isEmailSelected ? TextInputType.emailAddress : TextInputType.phone,
+              decoration: AuthInputDecoration.getDecoration(
+                label: _isEmailSelected ? 'Email' : 'Mobile Number',
+                icon: _isEmailSelected ? Icons.email : Icons.numbers,
+              ),
+              validator: (value) {
+                final input = value?.trim() ?? '';
+                if (input.isEmpty) {
+                  return _isEmailSelected ? 'Please enter your email' : 'Please enter your mobile number';
+                }
+                if (_isEmailSelected && !RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(input)) {
+                  return 'Please enter a valid email';
+                }
+                if (!_isEmailSelected && !RegExp(r'^\+?[0-9]{10,15}$').hasMatch(input)) {
+                  return 'Please enter a valid mobile number';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 15),
+
+            // Password Field
+            TextFormField(
+              controller: _passwordController,
+              obscureText: !_isPasswordVisible,
+              decoration: AuthInputDecoration.getDecoration(
+                label: 'Password',
+                icon: Icons.lock,
+              ).copyWith(
+                suffixIcon: IconButton(
+                  icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                ),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter password';
+                }
+                if (value.length < 6) {
+                  return 'Password must be at least 6 characters';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 15),
+
+            // Confirm Password Field
+            TextFormField(
+              controller: _confirmPasswordController,
+              obscureText: !_isConfirmPasswordVisible,
+              decoration: AuthInputDecoration.getDecoration(
+                label: 'Confirm Password',
+                icon: Icons.lock,
+              ).copyWith(
+                suffixIcon: IconButton(
+                  icon: Icon(_isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off),
+                  onPressed: () {
+                    setState(() {
+                      _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                    });
+                  },
+                ),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please confirm your password';
+                }
+                if (value != _passwordController.text) {
+                  return 'Passwords do not match';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 20),
+
+            // Signup Button
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: AuthButton(
+                text: 'Sign Up',
+                onPressed: _handleSignup,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Login Footer
+            AuthFooter(
+              titleText: 'Already have an account? ',
+              actionText: 'LogIn',
+              onTap: widget.onLoginPressed,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+--- FILE: C:\Users\esmot\StudioProjects\edu_result\lib\features\authentication\splash\splash_screen.dart ---
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+/// Splash Screen
+///
+/*
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+
+  // Logo Scale Animation
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+// Add this line to track the timer instance
+  Timer? _splashTimer;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.65,
+      end: 1.0,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    _controller.forward();
+    _checkFirstTimeOpen();
+  }
+
+  @override
+  void dispose() {
+    _splashTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _checkFirstTimeOpen() async {
+    var box = await Hive.openBox('firstUser');
+
+    bool isFirstTime = box.get(
+      'isFirstTime',
+      defaultValue: true,
+    );
+
+    if (isFirstTime) {
+      _splashTimer = Timer(const Duration(seconds: 3), () async {
+        await box.put('isFirstTime', false);
+
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 800),
+            pageBuilder: (_, animation, secondaryAnimation) =>
+            const LoginScreen(),
+            transitionsBuilder:
+                (_, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
+          ),
+        );
+      });
+    }
+    else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 500),
+            pageBuilder: (_, animation, secondaryAnimation) =>
+            const LoginScreen(),
+            transitionsBuilder:
+                (_, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
+          ),
+        );
+      });
+    }
+  }
+
+  // ==========================================================================
+  // UI
+  // ==========================================================================
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+
+    return Scaffold(
+      backgroundColor: const Color(0xffF8F9FA),
+      body: Stack(
+        children: [
+
+          // Bottom decorative illustration
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SizedBox(
+              height: screenSize.height * 0.22,
+              width: double.infinity,
+              child: Image.asset(
+                'assets/images/bk_splash_bottom.png',
+                fit: BoxFit.fill,
+              ),
+            ),
+          ),
+
+          // App logo and tagline
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+
+                ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: Image.asset(
+                    'assets/images/bk_logo_splash.png',
+                    width: screenWidth * .40,
+                    height: screenWidth * .40,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                const Text(
+                  'Track. Manage. Save',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.logoTitle,
+                ),
+
+                const SizedBox(height: 8),
+
+                const Text(
+                    'Manage your daily expenses',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.emptyState),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}*/
+
+

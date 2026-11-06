@@ -1,4 +1,3 @@
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/auth_providers.dart';
@@ -6,44 +5,73 @@ import '../providers/auth_providers.dart';
 /// Manages authentication state and session restoration.
 final authControllerProvider =
 AsyncNotifierProvider<AuthController, String?>(
-AuthController.new,
+  AuthController.new,
 );
 
 class AuthController extends AsyncNotifier<String?> {
-@override
-Future<String?> build() async {
-// Restore the existing session when the app starts.
-final repository = ref.read(authRepositoryProvider);
-return repository.restoreSession();
-}
+  @override
+  Future<String?> build() async {
+    // Restore the existing session when the app starts.
+    final repository = ref.read(authRepositoryProvider);
+    return repository.restoreSession();
+  }
 
-/// Authenticates a user and stores the assigned role.
-Future<void> login({
-required String email,
-required String password,
-}) async {
-state = const AsyncLoading();
+  /// Authenticates a user and stores the assigned role.
+  Future<void> login({
+    required String email,
+    required String password,
+  }) async {
+    state = const AsyncLoading();
 
-state = await AsyncValue.guard(() async {
-final repository = ref.read(authRepositoryProvider);
+    state = await AsyncValue.guard(() async {
+      final repository = ref.read(authRepositoryProvider);
 
-final role = await repository.login(
-email: email.trim(),
-password: password,
-);
+      final role = await repository.login(
+        email: email.trim(),
+        password: password,
+      );
 
-return role.toLowerCase();
-});
-}
+      return role.toLowerCase();
+    });
+  }
 
-/// Signs out the current user and clears authentication state.
-Future<void> logout() async {
-state = const AsyncLoading();
+  /// Registers a new user and signs them in or handles signup flow.
+  Future<void> signup({
+    required String name,
+    required String identifier,
+    required String password,
+  }) async {
+    state = const AsyncLoading();
 
-state = await AsyncValue.guard(() async {
-final repository = ref.read(authRepositoryProvider);
-await repository.signOut();
-return null;
-});
-}
+    state = await AsyncValue.guard(() async {
+      final repository = ref.read(authRepositoryProvider);
+
+      // 1. Repository theke signup method call korchi
+      await repository.signup(
+        name: name,
+        identifier: identifier,
+        password: password,
+      );
+
+      // 2. Signup successful hoile automatic login ba role restore korbe
+      // Athoba login call kore role fetch kore nite paren:
+      final role = await repository.login(
+        email: identifier,
+        password: password,
+      );
+
+      return role.toLowerCase();
+    });
+  }
+
+  /// Signs out the current user and clears authentication state.
+  Future<void> logout() async {
+    state = const AsyncLoading();
+
+    state = await AsyncValue.guard(() async {
+      final repository = ref.read(authRepositoryProvider);
+      await repository.signOut();
+      return null;
+    });
+  }
 }

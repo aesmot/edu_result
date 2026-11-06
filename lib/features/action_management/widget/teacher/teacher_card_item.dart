@@ -38,24 +38,35 @@ class TeacherCardItem extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ১. বামপাশে সিরিয়াল নম্বর
-          SizedBox(
-            width: 26,
+          // ১. বামপাশে সিরিয়াল নম্বর (স্টাইলিশ ব্যাজ ডিজাইন)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9), // হালকা গ্রে-ব্লু ব্যাকগ্রাউন্ড
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.grey.shade300,
+                width: 1,
+              ),
+            ),
             child: Text(
-              '$serialNumber.',
+              '$serialNumber',
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF64748B),
+                color: Color(0xFF334155),
               ),
             ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 10),
 
+          // ২. প্রোফাইল পিকচার (Avatar)
           // ২. প্রোফাইল পিকচার (Avatar)
           CircleAvatar(
             radius: 22,
-            backgroundImage: NetworkImage(staff.imageUrl),
+            backgroundImage: (staff.imageUrl != null && staff.imageUrl!.isNotEmpty)
+                ? NetworkImage(staff.imageUrl!) as ImageProvider
+                : const AssetImage('assets/images/default_avatar.png'), // অথবা কোনো লোকাল এসেট বা প্লেসহোল্ডার
             backgroundColor: Colors.grey.shade200,
           ),
           const SizedBox(width: 10),
@@ -89,9 +100,9 @@ class TeacherCardItem extends StatelessWidget {
               ],
             ),
           ),
-          //const SizedBox(width: 2),
+          const SizedBox(width: 6),
 
-          // ৪. দ্বিতীয় কলাম: মোবাইল নম্বর এবং তার নিচে ইমেইল
+          // ৪. দ্বিতীয় কলাম: মোবাইল নম্বর এবং তার নিচে ইমেইল
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,11 +130,15 @@ class TeacherCardItem extends StatelessWidget {
                   children: [
                     Icon(Icons.email_outlined, size: 12, color: Colors.grey.shade500),
                     const SizedBox(width: 3),
-                    Text(
-                      staff.email,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade600,
+                    Expanded(
+                      child: Text(
+                        staff.email,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],

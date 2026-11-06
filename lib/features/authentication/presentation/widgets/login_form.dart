@@ -7,8 +7,8 @@ import 'auth_button.dart';
 import 'auth_footer.dart';
 
 class LoginForm extends StatefulWidget {
-  final Future<void> Function(String email, String password)
-  onLoginPressed;
+  // onLoginPressed এখন bool (success/failure) রিটার্ন করবে
+  final Future<bool> Function(String email, String password) onLoginPressed;
 
   const LoginForm({
     super.key,
@@ -23,7 +23,7 @@ class _LoginFormState extends State<LoginForm> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  bool _isPasswordVisible = true;
+  bool _isPasswordVisible = false; // পাসওয়ার্ড ডিফল্টভাবে লুকানো থাকবে
   bool _isLoading = false;
 
   Future<void> _handleLogin() async {
@@ -44,9 +44,10 @@ class _LoginFormState extends State<LoginForm> {
     setState(() => _isLoading = true);
 
     try {
-      await widget.onLoginPressed(email, password);
+      final success = await widget.onLoginPressed(email, password);
 
-      if (mounted) {
+      // সফল হলে পাসওয়ার্ড ক্লিয়ার হবে, ভুল হলে পাসওয়ার্ড ফিল্ডে থেকে যাবে
+      if (success && mounted) {
         _passwordController.clear();
       }
     } finally {
@@ -55,13 +56,13 @@ class _LoginFormState extends State<LoginForm> {
       }
     }
   }
+
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -98,21 +99,19 @@ class _LoginFormState extends State<LoginForm> {
             decoration: InputDecoration(
               labelText: 'Email',
               prefixIcon: const Icon(Icons.email),
-                prefixIconColor: AppColors.authText,
+              prefixIconColor: AppColors.authText,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: const BorderSide(
                   color: Color(0xFF14B8A6),
                   width: 1,
                 ),
-
               ),
             ),
           ),
           const SizedBox(height: 15),
 
           // Password Field
-
           TextField(
             controller: _passwordController,
             obscureText: !_isPasswordVisible,
@@ -142,18 +141,17 @@ class _LoginFormState extends State<LoginForm> {
             ),
           ),
 
-
           // Forgot Password
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () {},
-              child: Text( // Ekhane theke 'const' ta kete dite hobe
+              child: Text(
                 'Forgot Password?',
                 style: AppTypography.actionText.copyWith(
                   color: AppColors.authText,
-                ), // Ekhane copyWith er bracket close holo
-              ), // Ekhane Text widget close holo
+                ),
+              ),
             ),
           ),
 
@@ -163,15 +161,15 @@ class _LoginFormState extends State<LoginForm> {
           SizedBox(
             width: double.infinity,
             height: 48,
-            child:
-            AuthButton(
+            child: AuthButton(
               text: _isLoading ? 'Logging in...' : 'Login',
               onPressed: _handleLogin,
               isLoading: _isLoading,
             ),
           ),
           const SizedBox(height: 20),
-          // Nicher Text ba Sign Up link
+
+          // Sign Up Link
           AuthFooter(
             titleText: "Don't have an account? ",
             actionText: "Sign Up",
@@ -184,8 +182,6 @@ class _LoginFormState extends State<LoginForm> {
               );
             },
           ),
-           ////////Under portion text end
-
         ],
       ),
     );

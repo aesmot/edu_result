@@ -57,25 +57,7 @@ class AdminQuickActionsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Section Header
-        Row(
-          children: const [
-            Icon(
-              Icons.bolt,
-              size: 20,
-              color: Color(0xFF2563EB),
-            ),
-            SizedBox(width: 6),
-            Text(
-              'QUICK MANAGEMENT ACTIONS',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF1E293B),
-                letterSpacing: 0.8,
-              ),
-            ),
-          ],
-        ),
+
         const SizedBox(height: 12),
 
         // Actions List

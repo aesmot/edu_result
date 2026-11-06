@@ -7,6 +7,32 @@ class AuthRemoteDataSource {
 
   final SupabaseClient _supabase;
 
+
+  /// Signs up a new user and saves their profile details.
+  Future<void> signUp({
+    required String name,
+    required String identifier,
+    required String password,
+  }) async {
+    // 1. Supabase Auth-e user create korchi
+    final response = await _supabase.auth.signUp(
+      email: identifier,
+      password: password,
+      data: {'name': name},
+    );
+
+    final user = response.user;
+
+    if (user == null) {
+      throw Exception('Signup failed. Please try again.');
+    }
+
+    // 2. Profiles table-e user_id ebong name save korchi
+    await _supabase.from('profiles').upsert({
+      'user_id': user.id,
+      'name': name,
+    });
+  }
   /// Signs in the user and retrieves their assigned role.
   Future<String> signIn({
     required String email,

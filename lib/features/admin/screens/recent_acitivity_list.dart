@@ -1,44 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:result_management_system/features/admin/screens/widget/gradiant_action_btn.dart';
 import '../../../core/constant/app_colors.dart';
-//import '../../core/constant/app_colors.dart'; // Apnar AppColors file
+//import '../providers/activity_log_providers.dart';
+import 'activity_log/presentation/providers/activity_log_providers.dart'; // আপনার প্রোভাইডার পাথ
 
-class RecentActivitiesList extends StatefulWidget {
+class RecentActivitiesList extends ConsumerWidget {
   const RecentActivitiesList({super.key});
 
   @override
-  State<RecentActivitiesList> createState() => _RecentActivitiesListState();
-}
-
-class _RecentActivitiesListState extends State<RecentActivitiesList> {
-  @override
-  Widget build(BuildContext context) {
-    // Demo Activity Data List
-    final List<Map<String, dynamic>> activities = [
-      {
-        'avatarText': 'E',
-        'avatarColor': const Color(0xFF6366F1), // Purple Gradient Tone
-
-        'time': '৩৫ মিনিট আগে',
-        'title': '২য় সাময়িকী পরীক্ষার সিট প্ল্যান ও হল শিডিউল প্রস্তুত',
-
-        'isButton': true,
-        'actionText': 'Approve',
-        'actionIcon': Icons.check_circle_outline_rounded,
-      },
-      {
-
-        'avatarColor': const Color(0xFF0EA5E9), // Blue Tone
-
-        'time': '১ ঘণ্টা আগে',
-        'title': '১০ম শ্রেণির পদ্মা সেকশন রুম ৩০১ এ স্থানান্তরের অনুরোধ',
-        'subtitle': 'ধারণক্ষমতা ৪৮ জন · মাল্টিমিডিয়া প্রজেক্টর সংযুক্ত',
-        'isButton': false,
-        'actionText': 'Done',
-        'actionIcon': Icons.check,
-      },
-    ];
-
+  Widget build(BuildContext context, WidgetRef ref) {
+    // ১. সুপাবেস থেকে রিভারপডের মাধ্যমে রিয়েলটাইম ডাটা ওয়াচ করা
+    //final activitiesStream = ref.watch(activityLogRepositoryProvider);
+    final activitiesStream = ref.watch(recentActivitiesProvider);
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
@@ -52,146 +27,110 @@ class _RecentActivitiesListState extends State<RecentActivitiesList> {
           ),
         ],
       ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: activities.length,
-        separatorBuilder: (context, index) => const Divider(
-          height: 1,
-          thickness: 1,
-          color: AppColors.border,
-        ),
-        itemBuilder: (context, index) {
-          final item = activities[index];
-          return _buildActivityItem(item);
-        },
-      ),
-    );
-  }
+      child: activitiesStream.when(
+        data: (activities) {
+          // সর্বোচ্চ ৫টি আইটেম লিমিট করা
+          final limitedActivities = activities.take(5).toList();
 
-  // Single Activity Item Layout
-  Widget _buildActivityItem(Map<String, dynamic> item) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+          if (limitedActivities.isEmpty) {
+            return const Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Center(
+                child: Text('কোনো সাম্প্রতিক অ্যাক্টিভিটি নেই', style: TextStyle(color: AppColors.textMuted)),
+              ),
+            );
+          }
 
-          const SizedBox(width: 8),
+          return ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: limitedActivities.length,
+            separatorBuilder: (context, index) => const Divider(
+              height: 1,
+              thickness: 1,
+              color: AppColors.border,
+            ),
+            itemBuilder: (context, index) {
+              final activity = limitedActivities[index];
 
-          // 2. Middle Details Text Content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              // সুপাবেস স্ট্যাটাস চেক (অ্যাপ্রুভড কি না)
+              final bool isPending = activity.status != 'approved';
 
-                const SizedBox(height: 6),
-
-                // Main Title
-                Text(
-                  item['title'],
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-
-                // Subtitle details
-                // Category Tag & Time Row
-                Row(
+              return Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF), // Light Blue Background
-                        borderRadius: BorderRadius.circular(6),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 6),
+                          Text(
+                            activity.actionType.name.toUpperCase(), // অথবা activity.description
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                activity.description,
+                                style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                              ),
+                              const SizedBox(width: 6),
+                              const Text('·', style: TextStyle(color: AppColors.textMuted)),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${activity.createdAt.hour}:${activity.createdAt.minute.toString().padLeft(2, '0')}',
+                                style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-
                     ),
-                    //const SizedBox(width: 6),
-                    const Text('·', style: TextStyle(color: AppColors.textMuted)),
-                    const SizedBox(width: 6),
-                    Text(
-                      item['time'],
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
+                    const SizedBox(width: 12),
+                    // ১ ক্লিকে সুপাবেসে স্ট্যাটাস আপডেট করার লজিক
+                    isPending
+                        ? GradientActionButton(
+                      text: 'Approve',
+                      icon: Icons.check_circle_outline_rounded,
+                      onPressed: () async {
+                        await Supabase.instance.client
+                            .from('activity_logs')
+                            .update({'status': 'approved'})
+                            .eq('id', activity.id);
+                      },
+                    )
+                        : _buildStatusBadge('Done', Icons.check),
                   ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // 3. Right Action Area (Gradient Button or Status Badge)
-          item['isButton']
-              ? GradientActionButton(
-            text: item['actionText'], // ডায়নামিক টেক্সট (যেমন: Approve)
-            icon: item['actionIcon'], // ডায়নামিক আইকন
-            onPressed: () {
-              // বাটনে ক্লিক করার লজিক
+              );
             },
-          )
-              : _buildStatusBadge(
-            item['actionText'], // ডায়নামিক টেক্সট (যেমন: Done)
-            item['actionIcon'], // ডায়নামিক আইকন
-          ),
-        ],
+          );
+        },
+        loading: () => const Padding(
+          padding: EdgeInsets.all(30.0),
+          child: Center(child: CircularProgressIndicator(color: Colors.teal)),
+        ),
+        error: (error, stack) => Padding(
+          padding: EdgeInsets.all(20.0),
+          child: Center(child: Text('Error: $error', style: const TextStyle(color: Colors.red, fontSize: 12))),
+        ),
       ),
     );
   }
 
-/*
-  // Active Blue Gradient Action Button Widget
-  Widget _buildGradientButton(String text, IconData icon) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            AppColors.primaryGradientStart,
-            AppColors.primaryGradientEnd,
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(25),
-          onTap: () {},
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, color: Colors.white, size: 16),
-                const SizedBox(width: 6),
-                Text(
-                  text,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }*/
   Widget _buildStatusBadge(String text, IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFECFDF5), // Light Green Background
+        color: const Color(0xFFECFDF5),
         borderRadius: BorderRadius.circular(25),
         border: Border.all(color: const Color(0xFFA7F3D0)),
       ),
@@ -203,7 +142,7 @@ class _RecentActivitiesListState extends State<RecentActivitiesList> {
           Text(
             text,
             style: const TextStyle(
-              color: const Color(0xFF059669),
+              color: Color(0xFF059669),
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),

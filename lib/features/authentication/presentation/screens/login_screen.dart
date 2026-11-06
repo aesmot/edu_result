@@ -1,9 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../controller/auth_controller.dart';
-
 import '../widgets/login_form.dart';
 import 'auth_role_router.dart';
 import 'login_background.dart';
@@ -53,6 +51,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             email: email,
             password: password,
           );
+
+          // কন্ট্রোলারে কোনো error না থাকলে success = true রিটার্ন করবে
+          return !ref.read(authControllerProvider).hasError;
         },
       ),
     );

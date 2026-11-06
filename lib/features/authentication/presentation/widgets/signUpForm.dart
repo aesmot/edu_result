@@ -9,11 +9,16 @@ import 'auth_method_button.dart'; // আলাদা করা মেথড ব�
 
 class SignUpForm extends StatefulWidget {
   final VoidCallback onLoginPressed;
+  // নতুন একটি ফাংশন যোগ করুন যা ডেটা রিসিভ করবে:
+  final Function(String name, String identifier, String password) onSignupSubmitted;
 
   const SignUpForm({
     super.key,
     required this.onLoginPressed,
+    required this.onSignupSubmitted, // এখানে রিকোয়ার্ড করুন
   });
+// ...
+
 
   @override
   State<SignUpForm> createState() => _SignUpFormState();
@@ -42,7 +47,13 @@ class _SignUpFormState extends State<SignUpForm> {
 
   void _handleSignup() {
     if (!_formKey.currentState!.validate()) return;
-    // Signup authentication logic here...
+
+    // কন্ট্রোলার থেকে টেক্সট নিয়ে পাস করে দেওয়া হচ্ছে
+    widget.onSignupSubmitted(
+      _nameController.text.trim(),
+      _identifierController.text.trim(),
+      _passwordController.text,
+    );
   }
 
   @override

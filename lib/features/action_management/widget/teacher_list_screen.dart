@@ -1,40 +1,25 @@
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Riverpod import করুন
 
 import 'package:result_management_system/features/action_management/widget/teacher/teacher_card_item.dart';
-import 'package:result_management_system/features/teacher/model/teacher_model.dart';
 import 'package:result_management_system/features/action_management/screen/teacher_manage/add_edit_teacher_screen.dart';
+//import 'package:result_management_system/features/teacher/provider/teacher_provider.dart'; // আপনার প্রোভাইডার ফাইল ইমপোর্ট করুন
 
 import '../../../shared/widgets/app_bar.dart';
+import '../providers/teacher_provider.dart';
 
-class TeacherListScreen extends StatelessWidget {
-  TeacherListScreen({super.key});
-
-  final List<StaffModel> staffList = [
-    StaffModel(
-      id: '1',
-      name: 'Abdullah Rahman',
-      designation: 'Assistant Professor',
-      employeeId: 'FAC-MATH-014',
-      email: 'abdullah@example.com',
-      phone: '+880 1786-876860',
-      imageUrl:
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    ),
-    StaffModel(
-      id: '2',
-      name: 'Sara Khan',
-      designation: 'Lecturer',
-      employeeId: 'FAC-PHYS-021',
-      email: 'sara@example.com',
-      phone: '+880 1675-123456',
-      imageUrl:
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80',
-    ),
-  ];
+// StatelessWidget এর পরিবর্তে ConsumerWidget ব্যবহার করুন যাতে ref ব্যবহার করা যায়
+class TeacherListScreen extends ConsumerWidget {
+  const TeacherListScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // প্রোভাইডার থেকে শিক্ষকদের ডাটা ওয়াচ করা হচ্ছে
+    const centerWidget = Center(child: CircularProgressIndicator());
+    const errorWidget = Center(child: Text('ডাটা লোড করতে সমস্যা হয়েছে!'));
+
+    final teacherAsyncValue = ref.watch(teacherListProvider);
+
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: const UserAppBar(),
@@ -50,8 +35,7 @@ class TeacherListScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                      const AddEditTeacherScreen(),
+                      builder: (context) => const AddEditTeacherScreen(),
                     ),
                   );
                 },
@@ -72,29 +56,45 @@ class TeacherListScreen extends StatelessWidget {
             ),
           ),
 
-          // Teacher List
+          // Teacher List (AsyncValue দিয়ে Loading, Error এবং Data হ্যান্ডেল করা)
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: staffList.length,
-              itemBuilder: (context, index) {
-                return TeacherCardItem(
-                  serialNumber: index + 1,
-                  staff: staffList[index],
-                  onEdit: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                        const AddEditTeacherScreen(),
-                      ),
+            child: teacherAsyncValue.when(
+              data: (staffList) {
+                if (staffList.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'কোনো শিক্ষক পাওয়া যায়নি!',
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: staffList.length,
+                  itemBuilder: (context, index) {
+                    return TeacherCardItem(
+                      serialNumber: index + 1,
+                      staff: staffList[index],
+                      onEdit: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddEditTeacherScreen(
+                              teacher: staffList[index], // এডিট করার জন্য ডাটা পাস করা
+                            ),
+                          ),
+                        );
+                      },
+                      onDelete: () {
+                        // ডিলিট লজিক এখানে যোগ করতে পারেন
+                      },
                     );
-                  },
-                  onDelete: () {
-                    // Delete action will be implemented later.
                   },
                 );
               },
+              loading: () => centerWidget,
+              error: (error, stackTrace) => errorWidget,
             ),
           ),
         ],
