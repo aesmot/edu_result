@@ -1,5 +1,5 @@
 
-/// Represents a subject offered for a particular class.
+/// Represents a subject assigned to a particular class.
 class Subject {
   final String id;
   final String name;
@@ -14,21 +14,24 @@ class Subject {
   });
 
   /// Creates a Subject instance from a Supabase row.
-  factory Subject.fromJson(Map<String, dynamic> json) {
+  factory Subject.fromJson(
+      Map<String, dynamic> json, {
+        String? classId,
+      }) {
     return Subject(
-      id: json['id'].toString(),
-      name: json['name'] as String,
-      code: json['code'] as String?,
-      classId: json['class_id'].toString(),
+      id: json['subject_id'].toString(),
+      name: json['subject_name'] as String,
+      code: json['subject_code'] as String?,
+      classId: classId ?? json['class_id']?.toString() ?? '',
     );
   }
 
   /// Converts the subject into a JSON-compatible map.
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'name': name,
-      'code': code,
+      'subject_id': id,
+      'subject_name': name,
+      'subject_code': code,
       'class_id': classId,
     };
   }

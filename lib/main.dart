@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/constant/app_colors.dart';
 import 'features/authentication/presentation/screens/auth_gate_screen.dart';
 
 
@@ -31,10 +32,13 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       //title: 'Flutter Demo',
-      theme: ThemeData(
-
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
+        theme: ThemeData(
+          colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+          snackBarTheme: const SnackBarThemeData(
+            backgroundColor: AppColors.primaryGradientStart,
+            contentTextStyle: TextStyle(color: Colors.white),
+          ),
+        ),
         home: const AuthGateScreen()
     );
   }

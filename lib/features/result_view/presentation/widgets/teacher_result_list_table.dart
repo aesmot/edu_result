@@ -48,14 +48,19 @@ class ResultListTable extends StatelessWidget {
   ];
 
   @override
+
+
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
+      height: 500,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: AppColors.cardBorder,
+          color: AppColors.cardBorder,
         ),
         boxShadow: [
           BoxShadow(
@@ -65,57 +70,71 @@ class ResultListTable extends StatelessWidget {
           ),
         ],
       ),
+
+
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: _tableWidth,
-            child: Column(
-              children: [
-                Container(
-                  decoration: const BoxDecoration( // <-- color soriye decoration diben
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.tblHeadingStart,
-                        AppColors.tblHeadingEnd,
-                        //Color(0xFF4C9EEB),
-                        //Color(0xFF6B4EE6)
+          scrollDirection: Axis.vertical,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: _tableWidth,
+              child: Column(
+                children: [
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.tblHeadingStart,
+                          AppColors.tblHeadingEnd,
+                        ],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 15,
+                    ),
+                    child: const Row(
+                      children: [
+                        _HeaderCell('Roll', width: 48),
+                        _HeaderCell('Student Name', width: 180),
+                        _HeaderCell('Total', width: 85),
+                        _HeaderCell('Grade', width: 95),
+                        _HeaderCell('Merit', width: 90),
                       ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 15,
+
+                  ..._students.map(
+                        (student) => ResultStudentRow(
+                      roll: student['roll']!,
+                      name: student['name']!,
+                      total: student['total']!,
+                      grade: student['grade']!,
+                      merit: student['merit']!,
+                      quran: '',
+                      akaid: '',
+                      arabic1: '',
+                      arabic2: '',
+                      bangla: '',
+                      english: '',
+                      math: '',
+                      ict: '',
+                    ),
                   ),
-                  child: const Row(
-                    children: [
-                      _HeaderCell('Roll', width: 48),
-                      _HeaderCell('Student Name', width: 180),
-                      _HeaderCell('Total', width: 85),
-                      _HeaderCell('Grade', width: 95),
-                      _HeaderCell('Merit', width: 90),
-                    ],
-                  ),
-                ),
-                ..._students.map(
-                      (student) => ResultStudentRow(
-                    roll: student['roll']!,
-                    name: student['name']!,
-                    total: student['total']!,
-                    grade: student['grade']!,
-                    merit: student['merit']!,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
+
+
 }
 
 class _HeaderCell extends StatelessWidget {

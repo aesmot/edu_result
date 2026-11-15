@@ -1,33 +1,27 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class ProfileScreen extends StatefulWidget {
+// আপনার প্রজেক্টের path অনুযায়ী মিলিয়ে নিন
+import '../controller/teacher_profile_controller.dart';
+
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  final _supabase = Supabase.instance.client;
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _designationController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  String _name = '';
-  String _email = '';
-  String? _avatarUrl;
-  File? _pickedImage;
-
-  bool _isLoading = true;
-  bool _isSaving = false;
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _init());
   }
 
   @override
@@ -37,78 +31,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  // লগইন করা ইউজারের uid দিয়ে নিজের row আনা
-  Future<void> _loadProfile() async {
+  // প্রোফাইল আগে লোড না হয়ে থাকলে লোড করে, তারপর ফিল্ডে বসায়
+  Future<void> _init() async {
+    final notifier = ref.read(teacherProfileControllerProvider.notifier);
+
     try {
-      final user = _supabase.auth.currentUser;
-      if (user == null) throw Exception('লগইন করা নেই');
-
-      final data = await _supabase
-          .from('teacher_profiles')
-          .select('full_name, email, designation, phone, avatar_url')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-      if (!mounted) return;
-      setState(() {
-        _name = (data?['full_name'] as String?) ?? '';
-        _email = (data?['email'] as String?) ?? user.email ?? '';
-        _designationController.text = (data?['designation'] as String?) ?? '';
-        _phoneController.text = (data?['phone'] as String?) ?? '';
-        _avatarUrl = data?['avatar_url'] as String?;
-        _isLoading = false;
-      });
+      if (ref.read(teacherProfileControllerProvider).profile == null) {
+        await notifier.loadProfile();
+      }
     } catch (e) {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      _showMessage('প্রোফাইল লোড করতে সমস্যা হয়েছে!\n$e', isError: true);
+      if (mounted) {
+        _showMessage('প্রোফাইল লোড করতে সমস্যা হয়েছে!\n$e', isError: true);
+      }
     }
+
+    if (!mounted) return;
+
+    final profile = ref.read(teacherProfileControllerProvider).profile;
+    _designationController.text = (profile?['designation'] as String?) ?? '';
+    _phoneController.text = (profile?['phone'] as String?) ?? '';
+
+    setState(() => _initialized = true);
   }
 
-  Future<void> _pickImage() async {
-    final picked = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 70,
-      maxWidth: 800,
-    );
-    if (picked != null) {
-      setState(() => _pickedImage = File(picked.path));
-    }
-  }
-
-  // সব ফিল্ড অপশনাল: শুধু যেগুলো পূরণ করা হয়েছে সেগুলো আপডেট হবে
   Future<void> _save() async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return;
-
-    final designation = _designationController.text.trim();
-    final phone = _phoneController.text.trim();
-
-    final updates = <String, dynamic>{
-      if (designation.isNotEmpty) 'designation': designation,
-      if (phone.isNotEmpty) 'phone': phone,
-      // TODO: ছবি আপলোড করে avatar_url এখানে যোগ করতে হবে (Storage bucket ঠিক হলে)
-    };
-
-    if (updates.isEmpty) {
-      _showMessage('কিছু পূরণ করা হয়নি');
-      return;
-    }
-
-    setState(() => _isSaving = true);
     try {
-      await _supabase
-          .from('teacher_profiles')
-          .update(updates)
-          .eq('user_id', user.id);
+      await ref.read(teacherProfileControllerProvider.notifier).saveProfile(
+        designation: _designationController.text,
+        phone: _phoneController.text,
+      );
 
       if (!mounted) return;
       _showMessage('প্রোফাইল সেভ হয়েছে');
     } catch (e) {
       if (!mounted) return;
-      _showMessage('সেভ করতে সমস্যা হয়েছে!\n$e', isError: true);
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      _showMessage('সেভ করতে সমস্যা হয়েছে!\n$msg', isError: true);
     }
   }
 
@@ -123,18 +81,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    final state = ref.watch(teacherProfileControllerProvider);
+
+    if (!_initialized || state.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final profile = state.profile;
+    final user = Supabase.instance.client.auth.currentUser;
+
+    final name = (profile?['full_name'] as String?) ?? '';
+    final email = (profile?['email'] as String?) ?? user?.email ?? '';
+    final avatarUrl = (profile?['avatar_url'] as String?) ?? '';
+
     ImageProvider? avatarImage;
-    if (_pickedImage != null) {
-      avatarImage = FileImage(_pickedImage!);
-    } else if (_avatarUrl != null && _avatarUrl!.isNotEmpty) {
-      avatarImage = NetworkImage(_avatarUrl!);
+    if (state.pickedImage != null) {
+      avatarImage = MemoryImage(state.pickedImage!);
+    } else if (avatarUrl.isNotEmpty) {
+      avatarImage = NetworkImage(avatarUrl);
     }
 
-    final initial = _name.trim().isNotEmpty ? _name.trim()[0].toUpperCase() : '?';
+    final initial =
+    name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -164,11 +132,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 bottom: 0,
                 right: 0,
                 child: InkWell(
-                  onTap: _pickImage,
+                  onTap: () => ref
+                      .read(teacherProfileControllerProvider.notifier)
+                      .pickImage(),
                   child: const CircleAvatar(
                     radius: 16,
                     backgroundColor: Color(0xFF2563EB),
-                    child: Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                    child:
+                    Icon(Icons.camera_alt, size: 16, color: Colors.white),
                   ),
                 ),
               ),
@@ -176,14 +147,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 14),
 
-          // নাম ও ইমেইল (শুধু দেখানো, বদলানো যাবে না)
+          // নাম ও ইমেইল (শুধু দেখানো)
           Text(
-            _name.isNotEmpty ? _name : 'নাম নেই',
+            name.isNotEmpty ? name : 'নাম নেই',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
-            _email.isNotEmpty ? _email : 'ইমেইল নেই',
+            email.isNotEmpty ? email : 'ইমেইল নেই',
             style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 24),
@@ -220,7 +191,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             width: double.infinity,
             height: 48,
             child: ElevatedButton(
-              onPressed: _isSaving ? null : _save,
+              onPressed: state.isSaving ? null : _save,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2563EB),
                 foregroundColor: Colors.white,
@@ -228,7 +199,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: _isSaving
+              child: state.isSaving
                   ? const SizedBox(
                 width: 20,
                 height: 20,

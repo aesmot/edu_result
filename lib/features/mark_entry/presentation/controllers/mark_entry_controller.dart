@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import '../../domain/models/student_mark.dart';
 import '../../domain/repositories/mark_entry_repository.dart';
 import 'student_marks_ui.dart';

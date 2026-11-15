@@ -32,9 +32,8 @@ class AdminScreen extends StatelessWidget {
               const SizedBox(height: 16), // স্ট্যাটাস কার্ডের আগে উপযুক্ত স্পেস
 
               // Status Grid Card
-              const AdminDashboardStatusGrid(),
-
-              const SizedBox(height: 24), // সেকশন পরিবর্তনের জন্য স্ট্যান্ডার্ড গ্যাপ (২৪ পিক্সেল)
+               AdminDashboardStatusCard(),
+               SizedBox(height: 24), // সেকশন পরিবর্তনের জন্য স্ট্যান্ডার্ড গ্যাপ (২৪ পিক্সেল)
 
               // Quick Actions Section
               const IconSectionTitle(
@@ -66,7 +65,7 @@ class AdminScreen extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: const BottomNavBar(),
+     // bottomNavigationBar:  BottomNavBar(),
     );
   }
 }

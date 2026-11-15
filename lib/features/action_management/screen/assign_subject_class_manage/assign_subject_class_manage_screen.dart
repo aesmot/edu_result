@@ -1,109 +1,140 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:result_management_system/features/action_management/screen/assign_subject_class_manage/providers/assign_subject_provider.dart';
 import 'package:result_management_system/shared/widgets/app_bar.dart';
 
 import 'assigned_card_Item.dart';
+import 'domain/models/teacher_with_assigned_class.dart';
 import 'edit_assign_sub&class_screen.dart';
 
-// Dummy Model class for Assignment Data
-class TeacherAssignmentModel {
-  final String id;
-  final String teacherName;
-  final String className;
-  final String subjectName;
+////
 
+class AssignSubjectClassManageScreen extends ConsumerWidget {
+  const AssignSubjectClassManageScreen({super.key});
 
-  TeacherAssignmentModel({
-    required this.id,
-    required this.teacherName,
-    required this.className,
-    required this.subjectName,
-
-  });
-}
-
-class AssignClassSubjectScreen extends StatefulWidget {
-  const AssignClassSubjectScreen({super.key});
-
-  @override
-  State<AssignClassSubjectScreen> createState() => _AssignClassSubjectScreenState();
-}
-
-class _AssignClassSubjectScreenState extends State<AssignClassSubjectScreen> {
-  // Dummy data list
-  final List<TeacherAssignmentModel> assignments = [
-    TeacherAssignmentModel(
-      id: '1',
-      teacherName: 'Mawlana Abdur Rahman',
-      className: 'Class 9 (Dakhil)',
-      subjectName: 'Al-Hadith',
-     // imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-    ),
-    TeacherAssignmentModel(
-      id: '2',
-      teacherName: 'Mohammad Ali',
-      className: 'Class 6',
-      subjectName: 'Arabic Grammar',
-     // imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
-    ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-          appBar: UserAppBar(),
-
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Section Title
-            const Text(
-              'CURRENT ASSIGNED SUBJECT FOR TEACHER',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF64748B),
-                letterSpacing: 0.8,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Assignment List
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: assignments.length,
-              itemBuilder: (context, index) {
-                final item = assignments[index];
-                return AssignedCardItem(
-                  serialNumber: index + 1,
-                  teacherName: item.teacherName,
-                  className: item.className,
-                  subjectName: item.subjectName,
-
-                  onEdit: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EditAssignSubClassScreen(
-                          assignmentId: item.id,
-                          teacherName: item.teacherName,
-                          className: item.className,
-                          subjectName: item.subjectName,
-                        ),
-                      ),
-                    );
-                  },
-                  onDelete: () {
-                    // Delete action
-                  }, assignmentId: '',
-                );
-              },
-            ),
-          ],
+  Future<void> _confirmDelete(
+      BuildContext context,
+      WidgetRef ref,
+      ClassAssignment cls,
+      AssignedSubjectItem subject,
+      ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Assignment মুছবেন?'),
+        content: Text(
+          '"${subject.subjectName}" (${cls.className}) এর assignment সরানো হবে।',
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('বাতিল'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('মুছুন'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await ref
+          .read(assignSubjectRepositoryProvider)
+          .deleteAssignment(subject.assignmentId);
+      ref.invalidate(teacherWithAssignmentsProvider);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final teachersAsync = ref.watch(teacherWithAssignmentsProvider);
+
+    return Scaffold(
+      appBar: UserAppBar(),
+      body: teachersAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'ত্রুটি: $error',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: () =>
+                      ref.invalidate(teacherWithAssignmentsProvider),
+                  child: const Text('আবার চেষ্টা করুন'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        data: (teachers) {
+          return RefreshIndicator(
+            onRefresh: () => ref.refresh(teacherWithAssignmentsProvider.future),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              children: [
+                const Text(
+                  'CURRENT ASSIGNED SUBJEC TEACHER',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF64748B),
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (teachers.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 40),
+                    child: Center(
+                      child: Text(
+                        'কোনো teacher পাওয়া যায়নি',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                for (var i = 0; i < teachers.length; i++)
+                  AssignedCardItem(
+                    serialNumber: i + 1,
+                    teacherName: teachers[i].name,
+                    designation: teachers[i].designation,
+                    classes: teachers[i].classes,
+                    onDeleteSubject: (cls, subject) =>
+                        _confirmDelete(context, ref, cls, subject),
+                    onEdit: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EditAssignSubClassScreen(teacher: teachers[i]),
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 }
+
+////

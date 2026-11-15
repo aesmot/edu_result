@@ -2,8 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:result_management_system/shared/widgets/app_bar.dart';
 
-import '../widgets/exam_performance_card.dart';
-import '../widgets/result_list_table.dart';
+import '../../../../shared/widgets/section_heading.dart';
+import 'class_result_summary_card.dart';
+import '../widgets/teacher_result_list_table.dart';
 import '../widgets/result_action_buttons.dart';
 
 class AdminResultScreen extends StatelessWidget {
@@ -21,74 +22,160 @@ class AdminResultScreen extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  _SectionHeading(
-                    title: 'EXAM PERFORMANCE SUMMARY',
-                    icon: Icons.bar_chart_rounded,
+                children: [
+                  // Exam Information Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF4C9EEB),
+                          Color(0xFF6B4EE6),
+                        ],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF4C9EEB)
+                              .withValues(alpha: 0.18),
+                          blurRadius: 14,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(13),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.assessment_rounded,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                        ),
+
+                        const SizedBox(width: 16),
+
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'EXAM PERFORMANCE SUMMARY',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+
+                              SizedBox(height: 7),
+
+                              Text(
+                                'Annual Examination',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+
+                              SizedBox(height: 5),
+
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_month_rounded,
+                                    color: Colors.white70,
+                                    size: 15,
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Academic Year 2026',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const Icon(
+                          Icons.school_rounded,
+                          color: Colors.white24,
+                          size: 48,
+                        ),
+                      ],
+                    ),
                   ),
-                  SizedBox(height: 12),
 
-                  ExamPerformanceCard(
-                    examName: 'Half Yearly Examination',
-                    academicYear: '2026',
-                    className: '6',
-                    subjectName: 'ICT',
-                  ),
+                  const SizedBox(height: 26),
 
-                  SizedBox(height: 24),
-
-                  _SectionHeading(
-                    title: 'STUDENT RESULT LIST',
+                  // Class-wise Result Overview
+                  const SectionHeading(
+                    title: 'CLASS-WISE RESULT OVERVIEW',
                     icon: Icons.menu_book_rounded,
                   ),
-                  SizedBox(height: 12),
 
-                  ResultListTable(),
+                  const SizedBox(height: 14),
 
-                  SizedBox(height: 24),
+                  ClassResultSummaryCard(
+                    className: 'Class 9',
+                    totalStudents: 50,
+                    passed: 45,
+                    failed: 5,
+                    passRate: 90,
+                    status: 'Published',
+                    onViewResults: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => Scaffold(
+                            appBar: UserAppBar(),
+                            body: const SafeArea(
+                              child: Padding(
+                                padding: EdgeInsets.all(20),
+                                child: ResultListTable(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
 
-                  ResultActionButtons(),
+                  const SizedBox(height: 12),
+
+                  // More class cards can be added here.
+
+                  const SizedBox(height: 26),
+
+                  // Print Result
+                  const SectionHeading(
+                    title: 'PRINT YOUR RESULT',
+                    icon: Icons.print_rounded,
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  const ResultActionButtons(),
                 ],
               ),
             ),
           ),
         ),
       ),
-    );
-  }
-}
-
-class _SectionHeading extends StatelessWidget {
-  final String title;
-  final IconData icon;
-
-  const _SectionHeading({
-    required this.title,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          color: const Color(0xFF5B61D6),
-          size: 22,
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-              color: Color(0xFF303650),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -7,7 +7,7 @@ class StudentMarksUI {
   final TextEditingController mcqController;
   final TextEditingController theoryController;
   final TextEditingController practicalController;
-  double totalMarks;
+  int totalMarks;
 
   StudentMarksUI({
     required this.studentId,
@@ -15,11 +15,11 @@ class StudentMarksUI {
     required this.roll,
     String initialMcq = '',
     String initialTheory = '',
-    String initialPractical = '',
+    String initialPractical = '', required String theory, required String practical, required String mcq,
   })  : mcqController = TextEditingController(text: initialMcq),
         theoryController = TextEditingController(text: initialTheory),
         practicalController = TextEditingController(text: initialPractical),
-        totalMarks = 0.0 {
+        totalMarks = 0 {
     calculateTotal();
 
     // ইনপুট পরিবর্তনের সাথে সাথে অটো টোটাল আপডেট করার জন্য
@@ -29,14 +29,15 @@ class StudentMarksUI {
   }
 
   void calculateTotal() {
-    final mcq = double.tryParse(mcqController.text) ?? 0.0;
-    final theory = double.tryParse(theoryController.text) ?? 0.0;
-    final practical = double.tryParse(practicalController.text) ?? 0.0;
+    final mcq = int.tryParse(mcqController.text) ?? 0;
+    final theory = int.tryParse(theoryController.text) ?? 0;
+    final practical = int.tryParse(practicalController.text) ?? 0;
+
     totalMarks = mcq + theory + practical;
   }
 
   // স্ক্রিনের সাথে ম্যাচ করার জন্য গেটারগুলো
-  double get total => totalMarks;
+  int get total => totalMarks;
 
   bool get isComplete {
     return mcqController.text.isNotEmpty &&

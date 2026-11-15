@@ -19,6 +19,7 @@ class StudentMarkRow extends StatelessWidget {
     this.theoryMax = 50,
     this.practicalMax = 25,
     this.enabled = true,
+    this.isEditing = true,
   });
 
   final String roll;
@@ -38,6 +39,35 @@ class StudentMarkRow extends StatelessWidget {
   final int theoryMax;
   final int practicalMax;
   final bool enabled;
+
+  /// true hole input field, false hole shudhu text dekhabe.
+  final bool isEditing;
+
+  Widget _markCell({
+    required TextEditingController controller,
+    required int maxMark,
+    required ValueChanged<String> onChanged,
+  }) {
+    return SizedBox(
+      width: 58,
+      child: isEditing
+          ? MarkInputField(
+        controller: controller,
+        maxMark: maxMark,
+        onChanged: onChanged,
+        enabled: enabled,
+        width: 58,
+      )
+          : Text(
+        controller.text.trim().isEmpty ? '—' : controller.text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,41 +114,28 @@ class StudentMarkRow extends StatelessWidget {
           ),
 
           // MCQ
-          SizedBox(
-            width: 58,
-            child: MarkInputField(
-              controller: mcqController,
-              maxMark: mcqMax,
-              onChanged: onMcqChanged,
-              enabled: enabled,
-              width: 58,
-            ),
+          _markCell(
+            controller: mcqController,
+            maxMark: mcqMax,
+            onChanged: onMcqChanged,
           ),
-      SizedBox(width: 8),
+
+          const SizedBox(width: 6),
+
           // Theory
-          SizedBox(
-            width: 58,
-            child: MarkInputField(
-              controller: theoryController,
-              maxMark: theoryMax,
-              onChanged: onTheoryChanged,
-              enabled: enabled,
-              width: 58,
-            ),
+          _markCell(
+            controller: theoryController,
+            maxMark: theoryMax,
+            onChanged: onTheoryChanged,
           ),
 
           const SizedBox(width: 6),
 
           // Practical
-          SizedBox(
-            width: 58,
-            child: MarkInputField(
-              controller: practicalController,
-              maxMark: practicalMax,
-              onChanged: onPracticalChanged,
-              enabled: enabled,
-              width: 58,
-            ),
+          _markCell(
+            controller: practicalController,
+            maxMark: practicalMax,
+            onChanged: onPracticalChanged,
           ),
 
           const SizedBox(width: 20),

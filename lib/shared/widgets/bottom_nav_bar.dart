@@ -1,34 +1,24 @@
 import 'package:flutter/material.dart';
 
-import '../../core/constant/app_colors.dart';
-
 class BottomNavBar extends StatelessWidget {
-  const BottomNavBar({super.key});
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  const BottomNavBar({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      currentIndex: 0,
-      backgroundColor: AppColors.navBackground,
-      selectedItemColor: AppColors.primaryGradientStart,
-      unselectedItemColor: AppColors.navUnselected,
-      elevation: 8,
+      currentIndex: currentIndex,
+      onTap: onTap,
       items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Home',
-        ),
-
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Result',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.settings),
-          label: 'Admin',
-        ),
-
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+        BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Result'),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
       ],
     );
   }

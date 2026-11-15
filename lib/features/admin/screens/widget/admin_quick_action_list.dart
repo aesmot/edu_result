@@ -38,7 +38,7 @@ class AdminQuickActionsSection extends StatelessWidget {
         'color': const Color(0xFF10B981),
         'bgColor': const Color(0xFFF8FAFC),
         'iconBg': const Color(0xFFD1FAE5),
-        'page': AssignClassSubjectScreen(),
+        'page': AssignSubjectClassManageScreen(),
 
       },
       {

@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-
 import '../../../../core/constant/app_colors.dart';
 
 class ExamPerformanceCard extends StatelessWidget {
-  final String examName;
-  final String academicYear;
+  final String? examName;
+  final String? academicYear;
   final String className;
   final String subjectName;
 
   const ExamPerformanceCard({
     super.key,
-    required this.examName,
-    required this.academicYear,
+    this.examName,
+    this.academicYear,
     required this.className,
     required this.subjectName,
   });
@@ -20,13 +19,12 @@ class ExamPerformanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        // Halkha ba soft color background (Light blue tint)
         color: const Color(0xFFF0F4FF),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: const Color(0xFFD6E4FF), // Shundor soft border
+          color: const Color(0xFFD6E4FF),
           width: 1,
         ),
         boxShadow: [
@@ -40,27 +38,39 @@ class ExamPerformanceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 4),
-          Text(
-            '$examName ($academicYear)',
-            style: const TextStyle(
-              color: Color(0xFF1E293B), // Dark professional text
-              fontSize: 19,
-              fontWeight: FontWeight.w800,
+          // যদি examName বা academicYear থাকে, তবে উপরে একটি হেডার বা এক্সাম ইনফো দেখাতে পারেন
+          if (examName != null && examName!.isNotEmpty) ...[
+            Row(
+              children: [
+                const Icon(Icons.assignment_outlined, size: 16, color: AppColors.primaryGradientStart),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'পরীক্ষা: $examName ${academicYear != null ? '($academicYear)' : ''}',
+                    style: const TextStyle(
+                      color: Color(0xFF1E293B),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 10),
+          ],
+
+          // ক্লাস ও সাবজেক্টের ইনফো চিপস
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
               _InfoChip(
                 icon: Icons.school_outlined,
-                label: 'Class: $className',
+                label: 'ক্লাস: $className',
               ),
               _InfoChip(
                 icon: Icons.menu_book_outlined,
-                label: 'Subject: $subjectName',
+                label: 'বিষয়: $subjectName',
               ),
             ],
           ),
@@ -84,25 +94,24 @@ class _InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 12,
-        vertical: 9,
+        vertical: 8,
       ),
       decoration: BoxDecoration(
-        color: Colors.white, // Chip gulo white background-e thakbe
-        borderRadius: BorderRadius.circular(10),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          //color: const Color(0xFFD6E4FF),
           color: AppColors.cardBorder,
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: AppColors.primaryGradientStart, size: 16), // Primary theme color icon
+          Icon(icon, color: AppColors.primaryGradientStart, size: 16),
           const SizedBox(width: 7),
           Text(
             label,
             style: const TextStyle(
-              color: Color(0xFF334155), // Dark text for high readability
+              color: Color(0xFF334155),
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constant/app_colors.dart';
+import 'marking_note_card.dart';
 
 /// Displays the selected examination details above the marks table.
 class MarkExamInfoCard extends StatelessWidget {
@@ -59,7 +60,7 @@ class MarkExamInfoCard extends StatelessWidget {
             children: [
               _InfoChip(
                 icon: Icons.school_outlined,
-                label: 'Class: $className',
+                label: ' $className',
               ),
               _InfoChip(
                 icon: Icons.menu_book_outlined,
@@ -69,6 +70,8 @@ class MarkExamInfoCard extends StatelessWidget {
                 icon: Icons.menu_book_outlined,
                 label: 'FullMarks: $fullMarks',
               ),
+
+              MarkingNoteCard(),
             ],
           ),
         ],

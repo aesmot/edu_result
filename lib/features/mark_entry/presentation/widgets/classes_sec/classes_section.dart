@@ -11,6 +11,7 @@ class ClassesSection extends ConsumerWidget {
   final bool busy;
   final int? selectedClassId;
   final int? selectedSubjectId;
+  final Function(TeacherClass) onSelectClass;
   final Function(TeacherClass, TeacherSubject) onSelectSubject;
   final Function(TeacherClass, int) onAddSubject;
   final Function(TeacherSubject) onRemoveSubject;
@@ -24,6 +25,7 @@ class ClassesSection extends ConsumerWidget {
     required this.busy,
     required this.selectedClassId,
     required this.selectedSubjectId,
+    required this.onSelectClass,
     required this.onSelectSubject,
     required this.onAddSubject,
     required this.onRemoveSubject,
@@ -34,6 +36,12 @@ class ClassesSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teacherClasses = classesAsync.value ?? const <TeacherClass>[];
+
+    // বর্তমানে সিলেক্ট করা ক্লাস (Delete Class বাটনের জন্য)
+    TeacherClass? selectedClass;
+    for (final c in teacherClasses) {
+      if (c.id == selectedClassId) selectedClass = c;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -90,23 +98,48 @@ class ClassesSection extends ConsumerWidget {
                   selectedSubjectId: selectedSubjectId,
                   availableSubjects: availableSubjects,
                   busy: busy,
+                  onSelectClass: () => onSelectClass(teacherClass),
                   onSelectSubject: (subject) {
                     onSelectSubject(teacherClass, subject);
                   },
                   onAddSubject: (classSubjectId) =>
                       onAddSubject(teacherClass, classSubjectId),
                   onRemoveSubject: onRemoveSubject,
-                  onDeleteClass: () => onDeleteClass(teacherClass),
                 );
               }).toList(),
             );
           },
         ),
         const SizedBox(height: 4),
-        OutlinedButton.icon(
-          onPressed: (busy || catalog == null) ? null : onAddClassPressed,
-          icon: const Icon(Icons.add, size: 18),
-          label: const Text('Add Class'),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed:
+                (busy || catalog == null) ? null : onAddClassPressed,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Class'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: BorderSide(
+                    color: selectedClass == null || busy
+                        ? Colors.grey.shade300
+                        : Colors.red,
+                  ),
+                ),
+                onPressed: (busy || selectedClass == null)
+                    ? null
+                    : () => onDeleteClass(selectedClass!),
+                icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                label: const Text('Delete Class'),
+              ),
+            ),
+          ],
         ),
       ],
     );
